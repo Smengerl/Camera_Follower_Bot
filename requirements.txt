@@ -1,0 +1,11 @@
+opencv-python
+mediapipe
+numpy
+pyserial
+# Testing
+pytest
+# If you want specific versions that are known to work together, you can pin them:
+# numpy==1.25.2
+# opencv-python==4.7.0.72
+# mediapipe==0.10.0
+# pyserial==3.5

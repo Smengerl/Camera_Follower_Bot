@@ -1,3 +1,6 @@
+import os
+import sys
+import time
 import cv2
 import numpy as np
 import mediapipe as mp
@@ -10,7 +13,7 @@ from src.camera_follower_bot.serial_manager import SerialManager
 # ---------------------------
 # Configuration / constants
 # ---------------------------
-MODEL_PATH = '/Users/simon/Coding/Camera_Follower_Bot/blaze_face_short_range.tflite'
+MODEL_PATH = 'blaze_face_short_range.tflite'
 CAMERA_ID = 0  # change to swap camera
 
 
@@ -32,6 +35,35 @@ def make_face_detector(model_path: str = MODEL_PATH):
     )
     detector = FaceDetector.create_from_options(options)
     return detector
+
+
+def validate_model_path(path: str):
+    """Validate that the TFLite model exists and provide helpful instructions if not.
+
+    If the model file is missing, print guidance where to obtain compatible
+    MediaPipe BlazeFace models and exit the program with a non-zero code.
+    """
+    if not path:
+        print("Error: MODEL_PATH is empty.")
+        print_help_for_models()
+        sys.exit(2)
+
+    if not os.path.isfile(path):
+        print(f"Error: Face model not found at: {path}")
+        print_help_for_models()
+        sys.exit(2)
+
+
+def print_help_for_models():
+    print("\nHow to obtain a compatible MediaPipe face detection model:")
+    print(" - Use MediaPipe BlazeFace TFLite models (short/long range as needed).")
+    print(" - Example sources:")
+    print("     * https://github.com/google/mediapipe (search for blaze_face tflite assets)")
+    print("     * Prebuilt TFLite files sometimes live on model zips or sample repos")
+    print(" - Place the .tflite file locally and pass its path via --model-path or set MODEL_PATH.")
+    print(" - If you use `run_camera.py`, pass --model-path /path/to/blaze_face_short_range.tflite")
+    print("")
+
 
 
 def open_camera(camera_id: int = CAMERA_ID):
