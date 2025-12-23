@@ -3,6 +3,7 @@ import cv2
 import pytest
 
 from camera_follower_bot import camera_processor as cp
+from camera_follower_bot import run_camera as rc
 
 HERE = os.path.dirname(__file__)
 IMAGE_PATH = os.path.join(HERE, "testimage.png")
@@ -18,7 +19,7 @@ def test_face_detection_on_static_image():
     # Ensure model and mediapipe are available
     try:
         # validate model path first
-        cp.validate_model_path(cp.MODEL_PATH)
+        rc.validate_model_path(cp.MODEL_PATH)
     except SystemExit:
         pytest.skip(f"Model not found at {cp.MODEL_PATH}. Set MODEL_PATH or place tflite model there to run this test.")
 
