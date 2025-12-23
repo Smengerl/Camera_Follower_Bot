@@ -2,6 +2,17 @@
 
 Small repository that runs a camera-based face/pose follower and communicates over serial to a controller.
 
+This is an improved version of the code provided with the awesome "camera follower robot" project by Will Cogley https://willcogley.notion.site/ 
+
+Improvements:
+- includes all setup scripts in "infrasctructure as code" format to create venv
+- retry/backoff when serial connection is lost
+- fool-prove and more robust code (e.g. checking prerequisites)
+- Unit testing
+- CLI support
+- better structure, better readability
+
+
 ## Quickstart
 
 Prerequisites
