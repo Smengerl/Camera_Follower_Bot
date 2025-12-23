@@ -13,8 +13,10 @@ from src.camera_follower_bot.serial_manager import SerialManager
 # ---------------------------
 # Configuration / constants
 # ---------------------------
-MODEL_PATH = 'blaze_face_short_range.tflite'
 CAMERA_ID = 0  # change to swap camera
+HERE = os.path.dirname(__file__)
+MODEL_PATH = os.path.join(HERE, "../../models/blaze_face_short_range.tflite")
+
 
 
 

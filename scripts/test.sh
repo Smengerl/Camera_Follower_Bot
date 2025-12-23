@@ -12,4 +12,5 @@ if [ ! -x "$VENV_PYTHON" ]; then
 fi
 
 # forward all args to pytest
-exec "$VENV_PYTHON" -m pytest "$@"
+cd "$ROOT_DIR"
+exec "$VENV_PYTHON" -m pytest -v "$@"

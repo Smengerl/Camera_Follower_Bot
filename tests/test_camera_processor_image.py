@@ -4,14 +4,8 @@ import pytest
 
 from camera_follower_bot import camera_processor as cp
 
-
-def _skip_if_no_mediapipe_or_model():
-    # Check mediapipe import indirectly via make_face_detector
-    try:
-        # validate model path first
-        cp.validate_model_path(cp.MODEL_PATH)
-    except SystemExit:
-        pytest.skip(f"Model not found at {cp.MODEL_PATH}. Set MODEL_PATH or place tflite model there to run this test.")
+HERE = os.path.dirname(__file__)
+IMAGE_PATH = os.path.join(HERE, "testimage.png")
 
 
 def test_face_detection_on_static_image():
@@ -20,12 +14,13 @@ def test_face_detection_on_static_image():
     Provide the image path via the environment variable `CAMERA_TEST_IMAGE`.
     This test will be skipped with instructions if the model or image are missing.
     """
-    image_path = os.getenv('CAMERA_TEST_IMAGE')
-    if not image_path or not os.path.isfile(image_path):
-        pytest.skip(f'Provided CAMERA_TEST_IMAGE does not exist: {image_path}')
 
     # Ensure model and mediapipe are available
-    _skip_if_no_mediapipe_or_model()
+    try:
+        # validate model path first
+        cp.validate_model_path(cp.MODEL_PATH)
+    except SystemExit:
+        pytest.skip(f"Model not found at {cp.MODEL_PATH}. Set MODEL_PATH or place tflite model there to run this test.")
 
     # Build real detector
     try:
@@ -33,9 +28,11 @@ def test_face_detection_on_static_image():
     except Exception as exc:
         pytest.skip(f'Failed to create MediaPipe detector: {exc}')
 
-    img = cv2.imread(image_path)
+    if not IMAGE_PATH or not os.path.isfile(IMAGE_PATH):
+        pytest.skip(f'Provided test image does not exist: {IMAGE_PATH}')
+    img = cv2.imread(IMAGE_PATH)
     if img is None:
-        pytest.skip(f'cv2 failed to read image: {image_path}')
+        pytest.skip(f'cv2 failed to read image: {IMAGE_PATH}')
 
     h, w = img.shape[:2]
     center_x = w // 2
@@ -54,3 +51,7 @@ def test_face_detection_on_static_image():
     if error_x is not None and error_y is not None:
         assert abs(error_x) <= w
         assert abs(error_y) <= h
+
+        print(f"Face detected! Error X: {error_x}, Error Y: {error_y}")
+    else:
+        print("No face detected in the test image.")

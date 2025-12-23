@@ -7,7 +7,7 @@ from camera_follower_bot import camera_processor as cp
 
 def test_cv2_open_and_close():
     """Attempt to open the default camera and close it. Skip if no camera available."""
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(cp.CAMERA_ID)
     if not cap.isOpened():
         pytest.skip("No camera available on this system")
     # If opened, release and ensure it's closed

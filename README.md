@@ -46,3 +46,22 @@ Notes
 Contributing
 
 Feel free to open PRs and run tests locally using the above scripts.
+
+## Initial setup (models and venv)
+
+1. Create the virtual environment and install dependencies using the provided script:
+
+```bash
+./scripts/setup.sh
+```
+
+2. Download the BlazeFace TFLite model and place it into the `models/` directory.
+	See `models/README.txt` for guidance on where to get the model and how to place it.
+
+3. Run the camera processor and point it to the model file:
+
+```bash
+./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite --camera-id 0
+```
+
+If you prefer to keep the model in a different path, pass that path with `--model-path` when invoking the run script.
