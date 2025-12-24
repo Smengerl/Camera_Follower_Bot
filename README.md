@@ -21,6 +21,7 @@ Features
 - Simple CLI for running and configuring the processor
 - Reconnect/backoff logic for serial communication
 - Unit tests and pytest configuration
+- Migrated to new MediaPipe APIs
 - Helper scripts to setup venv, run tests, and run the processor
 
 Prerequisites

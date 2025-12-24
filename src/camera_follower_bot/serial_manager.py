@@ -64,6 +64,8 @@ class SerialManager:
             return False
         if not self.is_connected():
             return False
+        if self.ser is None:
+            return False
         try:
             self.ser.write(data)
             return True
@@ -80,11 +82,19 @@ class SerialManager:
             self.next_attempt_time = time.time() + backoff
             return False
 
+
+    
+    @staticmethod
+    def encode_line(error_x, error_y):
+        """Format positional data as bytes."""
+        try:
+            return f"{int(error_x)},{int(error_y)}\n"
+        except Exception:
+            return None
+
     def send_position(self, error_x, error_y):
         """Format and send positional data if connected; otherwise do nothing."""
-        try:
-            data = f"{int(error_x)},{int(error_y)}\n"
-        except Exception:
+        data = SerialManager.encode_line(error_x, error_y)
+        if data is None:
             return False
         return self.write(data.encode('utf-8'))
-     
