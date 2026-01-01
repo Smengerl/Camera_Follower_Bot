@@ -11,15 +11,13 @@ from servo import Servo
 DEADZONE_EYE = 25
 DEADZONE_NECK = 20 # Beyond this threshold of eye movement from center position, a neck movement is triggered
 NECK_DELAY_MS = 1200 # Minimum wait time between two neck moves (ms)
-NECK_X_MAP = 1.25
-NECK_Y_MAP = 1
+NECK_EYES_HOR_TRANSLATION = 1.25
+NECK_EYES_VER_TRANSLATION = 0.6
 KP = 0.03
 BLINK_PROBABILITY_PER_FRAME = 1 / 60.0
+LID_SYNC_OFFSET = 10  # Offset to keep eyelids slightly more closed than eye vertical position
+NECK_SPEED_DEG_PER_S=60 # Speed of neck movement in degrees per second
 
-
-
-
-#
 class Mode(Enum):
     HOLD = auto()
     AUTO = auto()
@@ -65,7 +63,7 @@ class ServoConfig:
         self.servo = Servo(pin_id=pin)
         
 
-    def write_servo(self, angle):
+    def write(self, angle):
         """Write angle to servo, respecting min/max limits."""
         # ensure lo <= hi
         lo = self.min
@@ -74,17 +72,17 @@ class ServoConfig:
             lo, hi = hi, lo
 
         # Make sure angle is within bounds
-        angle = max(lo, min(hi, angle))
+        angle = min(max(lo, angle), hi)
     
         self.servo.write(angle)
         self.target = angle
 
     def calibrate(self):
         """Move servo to default position."""
-        self.write_servo(self.default)
+        self.write(self.default)
 
 
-    def move_target(self, error, kp=KP, deadzone=DEADZONE_EYE):
+    def move_to_target(self, error, kp, deadzone):
         """Move a given servo target based on error and proportional control.
 
         Returns True if a movement occurred.
@@ -103,7 +101,7 @@ class ServoConfig:
             step = 1 if adj > 0 else -1
 
         new_target = self.target + step
-        self.write_servo(new_target)
+        self.write(new_target)
         return True
 
 
@@ -113,87 +111,86 @@ class ServoController:
 
 
     def __init__(self):
-        self.last_update = time.ticks_ms()
+        self.last_update = time.monotonic() 
 
         # helper values for smooth neck movement
-        self.bx_target = 90
-        self.by_target = 90
+        self.neck_hor_target = 90
+        self.neck_ver_target = 90
 
         # servos
-        self.servo_lr = ServoConfig(pin=10, min_pos=40, max_pos=140, default=90)
-        self.servo_ud = ServoConfig(pin=11, min_pos=40, max_pos=140, default=90)
-        self.servo_tl = ServoConfig(pin=12, min_pos=90, max_pos=170, default=90)
-        self.servo_tr = ServoConfig(pin=14, min_pos=90, max_pos=10, default=90)
-        self.servo_base_x = ServoConfig(pin=13, min_pos=10, max_pos=170, default=90)
-        self.servo_base_y = ServoConfig(pin=15, min_pos=40, max_pos=140, default=90)
+        self.servo_eyes_hor = ServoConfig(pin=10, min_pos=40, max_pos=140, default=90)
+        self.servo_eyes_ver = ServoConfig(pin=11, min_pos=40, max_pos=140, default=90)
+        self.servo_left_lid = ServoConfig(pin=12, min_pos=90, max_pos=170, default=90)
+        self.servo_right_lid = ServoConfig(pin=14, min_pos=90, max_pos=10, default=90)
+        self.servo_neck_hor = ServoConfig(pin=13, min_pos=10, max_pos=170, default=90)
+        self.servo_neck_ver = ServoConfig(pin=15, min_pos=40, max_pos=140, default=90)
 
     def calibrate(self):
         """Calibrate all servos to default position (e.g. in hold mode)."""
-        self.servo_lr.calibrate()
-        self.servo_ud.calibrate()
-        self.servo_tl.calibrate()
-        self.servo_tr.calibrate()
-        self.servo_base_x.calibrate()
-        self.servo_base_y.calibrate()
+        self.servo_eyes_hor.calibrate()
+        self.servo_eyes_ver.calibrate()
+        self.servo_left_lid.calibrate()
+        self.servo_right_lid.calibrate()
+        self.servo_neck_hor.calibrate()
+        self.servo_neck_ver.calibrate()
         
     def move_eyes(self, x_error, y_error):
         """Move eye servos based on x and y error values."""
-        self.servo_lr.move_target(-x_error)
-        self.servo_ud.move_target(y_error)
+        self.servo_eyes_hor.move_to_target(-x_error, KP, DEADZONE_EYE)
+        self.servo_eyes_ver.move_to_target(y_error, KP, DEADZONE_EYE)
 
     def blink_eyes(self):
         """Perform a blink by moving eyelid servos to closed position"""
-        self.servo_tl.write_servo(self.servo_tl.default)
-        self.servo_tr.write_servo(self.servo_tr.default)
+        self.servo_left_lid.write(self.servo_left_lid.default)
+        self.servo_right_lid.write(self.servo_right_lid.default)
 
     def lid_sync(self):
         """Keep eyelid positions synced to vertical eye position."""
         # normalize UD position to range 0..1 (Blickhöhe)
-        ud_pos = (self.servo_ud.target - self.servo_ud.min) / (self.servo_ud.max - self.servo_ud.min)
+        ud_pos = (self.servo_eyes_ver.target - self.servo_eyes_ver.min) / (self.servo_eyes_ver.max - self.servo_eyes_ver.min)
 
         # compute target positions for TL and TR based on UD position
-        tl_target = int(self.servo_tl.max - ((self.servo_tl.max - self.servo_tl.min) * (0.5 * (1 - ud_pos))) - 10)
-        tr_target = int(self.servo_tr.min + ((self.servo_tr.max - self.servo_tr.min) * (0.5 * (1 - ud_pos))) + 10)
+        tl_target = int(self.servo_left_lid.max - ((self.servo_left_lid.max - self.servo_left_lid.min) * (0.5 * (1 - ud_pos))) - LID_SYNC_OFFSET)
+        tr_target = int(self.servo_right_lid.min + ((self.servo_right_lid.max - self.servo_right_lid.min) * (0.5 * (1 - ud_pos))) + LID_SYNC_OFFSET)
 
-        self.servo_tl.write_servo(tl_target)
-        self.servo_tr.write_servo(tr_target)
+        self.servo_left_lid.write(tl_target)
+        self.servo_right_lid.write(tr_target)
 
     def neck_target(self):
         """Map eye movement (LR/UD) to base targets (but do not yet move the base); tweak multipliers as needed."""
-        self.bx_target = int(self.servo_lr.target * NECK_X_MAP)
-        self.by_target = int(90 - ((90 - self.servo_ud.target) * 0.6))
+        self.neck_hor_target = int(self.servo_eyes_hor.target * NECK_EYES_HOR_TRANSLATION)
+        self.neck_ver_target = int(90 - ((90 - self.servo_eyes_ver.target) * NECK_EYES_VER_TRANSLATION))
 
-    def neck_smooth_move(self, speed_deg_per_s=60):
+    def neck_smooth_move(self, speed_deg_per_s=NECK_SPEED_DEG_PER_S):
         """Smoothly move neck servos towards target positions."""
         # Use time.monotonic() for CPython compatibility
-        now = time.monotonic() * 1000  # ms
-        dt = now - getattr(self, 'last_update', now)
+        now = time.monotonic() 
+        dt = now - self.last_update
         self.last_update = now
-
         if dt <= 0:
             return
 
-        step_size = (speed_deg_per_s * dt) / 1000.0
+        step_size = speed_deg_per_s * dt
 
         # BaseX
-        bx = float(self.servo_base_x.target)
-        bx_target = float(self.bx_target)
+        bx = float(self.servo_neck_hor.target)
+        bx_target = float(self.neck_hor_target)
         dx = bx_target - bx
         if abs(dx) <= step_size:
             bx = bx_target
         else:
             bx += step_size if dx > 0 else -step_size
-        self.servo_base_x.write_servo(int(round(bx)))
+        self.servo_neck_hor.write(int(round(bx)))
 
         # BaseY
-        by = float(self.servo_base_y.target)
-        by_target = float(self.by_target)
+        by = float(self.servo_neck_ver.target)
+        by_target = float(self.neck_ver_target)
         dy = by_target - by
         if abs(dy) <= step_size:
             by = by_target
         else:
             by += step_size if dy > 0 else -step_size
-        self.servo_base_y.write_servo(int(round(by)))
+        self.servo_neck_ver.write(int(round(by)))
 
     
 
@@ -239,8 +236,8 @@ def main():
 
                 # decide if neck should move
                 if (
-                    abs(controller.servo_ud.target - 90) >= DEADZONE_NECK
-                    or abs(controller.servo_lr.target - 90) >= DEADZONE_NECK
+                    abs(controller.servo_eyes_ver.target - 90) >= DEADZONE_NECK
+                    or abs(controller.servo_eyes_hor.target - 90) >= DEADZONE_NECK
                 ):
                     if not neck_flag:
                         neck_trigger_time = time.monotonic() * 1000  # ms
