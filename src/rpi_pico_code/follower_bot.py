@@ -1,7 +1,5 @@
-
 import time
 import random
-from enum import Enum, auto
 
 from input_reader import InputReader
 from machine import Pin, ADC
@@ -18,9 +16,21 @@ BLINK_PROBABILITY_PER_FRAME = 1 / 60.0
 LID_SYNC_OFFSET = 10  # Offset to keep eyelids slightly more closed than eye vertical position
 NECK_SPEED_DEG_PER_S=60 # Speed of neck movement in degrees per second
 
-class Mode(Enum):
-    HOLD = auto()
-    AUTO = auto()
+
+# Compatibility for time.monotonic() in MicroPython
+try:
+    # MicroPython
+    monotonic_ms = time.ticks_ms
+except AttributeError:
+    # CPython
+    import time as _time
+    monotonic_ms = lambda: int(_time.monotonic() * 1000)
+
+
+# Simple replacement for Mode Enum
+class Mode:
+    HOLD = 0
+    AUTO = 1
 
 
 class Hardware:
@@ -43,7 +53,7 @@ class Hardware:
         return Mode.HOLD if not self.mode.value() else Mode.AUTO
 
     def is_enabled(self):
-        return not self.enable.value()
+        return self.enable.value()
 
     def led_flash(self, times=4, interval=0.2):
         for _ in range(times):
@@ -111,7 +121,7 @@ class ServoController:
 
 
     def __init__(self):
-        self.last_update = time.monotonic() 
+        self.last_update = monotonic_ms()
 
         # helper values for smooth neck movement
         self.neck_hor_target = 90
@@ -133,7 +143,11 @@ class ServoController:
         self.servo_right_lid.calibrate()
         self.servo_neck_hor.calibrate()
         self.servo_neck_ver.calibrate()
-        
+
+    def relax(self):
+        """Relax all servos to their default position."""
+        self.calibrate()
+
     def move_eyes(self, x_error, y_error):
         """Move eye servos based on x and y error values."""
         self.servo_eyes_hor.move_to_target(-x_error, KP, DEADZONE_EYE)
@@ -163,14 +177,13 @@ class ServoController:
 
     def neck_smooth_move(self, speed_deg_per_s=NECK_SPEED_DEG_PER_S):
         """Smoothly move neck servos towards target positions."""
-        # Use time.monotonic() for CPython compatibility
-        now = time.monotonic() 
+        now = monotonic_ms()
         dt = now - self.last_update
         self.last_update = now
         if dt <= 0:
             return
 
-        step_size = speed_deg_per_s * dt
+        step_size = speed_deg_per_s * dt / 1000.0  # degrees to move this update
 
         # BaseX
         bx = float(self.servo_neck_hor.target)
@@ -209,48 +222,65 @@ def main():
     # quick LED flash on start to indicate boot
     hw.led_flash(times=2, interval=0.12)
 
-    # main loop
-    while True:
-        mode = hw.get_mode()
-        if mode == Mode.HOLD:
-            # calibration mode — center all servos
-            controller.calibrate()
-            time.sleep(0.5)
-        elif mode == Mode.AUTO:
-            # auto mode
-            if hw.is_enabled():
-                data = reader.read_latest()
-                if data:
-                    x_err, y_err = data
-                    if x_err is not None and y_err is not None:
-                        # move eyes/eyelids
-                        controller.move_eyes(x_err, y_err)
 
-                # random blink
-                if random.random() < BLINK_PROBABILITY_PER_FRAME:
-                    controller.blink_eyes()
-                    time.sleep(0.06)
+    print("Starte MainLoop")
+    try:
+        # main loop
+        while True:
+            mode = hw.get_mode()
+            if mode == Mode.HOLD:
+                # calibration mode — center all servos
+                print("Hold mode active")
+                controller.calibrate()
+                time.sleep(0.5)
+            elif mode == Mode.AUTO:
+                # auto mode
+                if hw.is_enabled():
+                    data = reader.read_latest()
+                    if data:
+                        x_err, y_err = data
+                        if x_err is not None and y_err is not None:
+                            # move eyes/eyelids
+                            controller.move_eyes(x_err, y_err)
+                            print(f"Received position error: {x_err},{y_err}")
+                        else:
+                            print(f"Could not decode position error from received line: {data}")
+                    else:
+                        print("No position error received")
 
-                # keep lids synced to UD position
-                controller.lid_sync()
+                    # random blink
+                    if random.random() < BLINK_PROBABILITY_PER_FRAME:
+                        print("Blink eyes")
+                        controller.blink_eyes()
+                        time.sleep(0.06)
 
-                # decide if neck should move
-                if (
-                    abs(controller.servo_eyes_ver.target - 90) >= DEADZONE_NECK
-                    or abs(controller.servo_eyes_hor.target - 90) >= DEADZONE_NECK
-                ):
-                    if not neck_flag:
-                        neck_trigger_time = time.monotonic() * 1000  # ms
-                        neck_flag = True
+                    # keep lids synced to UD position
+                    controller.lid_sync()
 
-                    if neck_flag and ((time.monotonic() * 1000) - neck_trigger_time) >= NECK_DELAY_MS:
-                        controller.neck_target()
-                        neck_flag = False
+                    # decide if neck should move
+                    if (
+                        abs(controller.servo_eyes_ver.target - 90) >= DEADZONE_NECK
+                        or abs(controller.servo_eyes_hor.target - 90) >= DEADZONE_NECK
+                    ):
+                        if not neck_flag:
+                            neck_trigger_time = monotonic_ms()
+                            neck_flag = True
 
-                controller.neck_smooth_move()
+                        if neck_flag and (monotonic_ms() - neck_trigger_time) >= NECK_DELAY_MS:
+                            controller.neck_target()
+                            neck_flag = False
 
-            # small sleep — tune as required
-            time.sleep(0.001)
+                    controller.neck_smooth_move()
+                    # small sleep — tune as required
+                    time.sleep(0.001)
+                else:
+                    print("Disabled")
+                    time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("\nBeende MainLoop: Servos werden entlastet...")
+        controller.relax()  # oder hier eine relax()-Methode, falls gewünscht
+        time.sleep(0.5)
+        print("Servos in Mittelstellung. Programm beendet.")
 
 
 if __name__ == "__main__":
