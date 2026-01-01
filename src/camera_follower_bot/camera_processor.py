@@ -134,6 +134,8 @@ def main():
     # Open camera and compute center
     cap, frame_width, frame_height, center_x, center_y = open_camera()
 
+    frames_sent_since_reconnect = 0
+
     try:
         while cap.isOpened():
             ret, frame = cap.read()
@@ -142,22 +144,32 @@ def main():
 
             annotated, error_x, error_y = process_frame(frame, detector, center_x, center_y)
 
+            # Attempt non-blocking reconnects if needed
+            serial_mgr.reconnect_if_needed()
+
+            if not serial_mgr.is_connected():
+                # Show human-friendly error text on frame
+                frames_sent_since_reconnect = 0
+                cv2.putText(
+                    img=annotated,
+                    text=f"Not connected (Port: {serial_mgr.port}, Baud: {serial_mgr.baud})",
+                    org=(10, 25),
+                    color=(0, 0, 255),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.7)
+            else:
+                cv2.putText(
+                    img=annotated,
+                    text=f"Connected - Frames sent: {frames_sent_since_reconnect}",
+                    org=(10, 25),
+                    color=(255, 255, 255),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.7)
+
             if error_x is not None and error_y is not None:
 
                 # Show human-friendly error text on frame
                 text = f"Error X: {error_x} px, Error Y: {error_y} px"
-                cv2.putText(
-                    annotated,
-                    text,
-                    (10, frame_height - 20),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.7,
-                    (255, 255, 255),
-                    2,
-                )
-
-                # Attempt non-blocking reconnects if needed
-                serial_mgr.reconnect_if_needed()
 
                 # Throttle serial sending to ~100Hz
                 now = time.time()
@@ -165,6 +177,18 @@ def main():
                     # send via manager (will silently drop if disconnected)
                     serial_mgr.send_position(error_x, error_y)
                     last_send = now
+                    frames_sent_since_reconnect += 1
+            else:
+               text = f"No face detected"
+                 
+            cv2.putText(
+                img=annotated,
+                text=text,
+                org=(10, frame_height - 20),
+                color=(255, 255, 255),
+                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                fontScale=0.7,
+            )
 
             # Display the annotated frame
             cv2.imshow('Mediapipe Face Tracking', annotated)
