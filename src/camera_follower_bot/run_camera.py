@@ -45,8 +45,7 @@ class DummySerialManager:
         return False
 
     def send_position(self, error_x, error_y):
-        # Optionally print/log the data for debugging
-        # print(f"[no-serial] {error_x},{error_y}")
+        print(f"[no-serial] {error_x},{error_y}")
         return True
 
 
