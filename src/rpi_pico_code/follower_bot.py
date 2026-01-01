@@ -1,19 +1,24 @@
 import time
 import random
+import sys
+import argparse
 
 from input_reader import InputReader
 from machine import Pin, ADC
 from servo import Servo
 
 # --- Configuration ---
-DEADZONE_EYE = 25
+DEADZONE_EYE = 25 # Beyond this threshold of target movement from center position, eye servos will move
 DEADZONE_NECK = 20 # Beyond this threshold of eye movement from center position, a neck movement is triggered
 NECK_DELAY_MS = 1200 # Minimum wait time between two neck moves (ms)
 NECK_EYES_HOR_TRANSLATION = 1.25
 NECK_EYES_VER_TRANSLATION = 0.6
 KP = 0.03
-BLINK_PROBABILITY_PER_FRAME = 1 / 60.0
-LID_SYNC_OFFSET = 10  # Offset to keep eyelids slightly more closed than eye vertical position
+
+MIN_BLINK_WAIT_MS = 1000 # Minimum wait time between two blinks (ms)
+MAX_BLINK_WAIT_MS = 5000 # Maximum wait time between two blinks (ms)
+
+LID_SYNC_OFFSET = -30  # Offset to keep eyelids slightly more closed than eye vertical position
 NECK_SPEED_DEG_PER_S=60 # Speed of neck movement in degrees per second
 
 
@@ -139,9 +144,9 @@ class ServoController:
         """Calibrate all servos to default position (e.g. in hold mode)."""
         self.servo_eyes_hor.calibrate()
         self.servo_eyes_ver.calibrate()
-        self.servo_left_lid.calibrate()
-        self.servo_right_lid.calibrate()
-        self.servo_neck_hor.calibrate()
+        self.servo_left_lid.write(self.servo_left_lid.min)
+        self.servo_right_lid.write(self.servo_right_lid.max)
+        self.servo_neck_hor.write(self.servo_neck_hor.max)
         self.servo_neck_ver.calibrate()
 
     def relax(self):
@@ -155,20 +160,25 @@ class ServoController:
 
     def blink_eyes(self):
         """Perform a blink by moving eyelid servos to closed position"""
-        self.servo_left_lid.write(self.servo_left_lid.default)
-        self.servo_right_lid.write(self.servo_right_lid.default)
+        self.servo_left_lid.write(self.servo_left_lid.min)
+        self.servo_right_lid.write(self.servo_right_lid.min)
 
     def lid_sync(self):
         """Keep eyelid positions synced to vertical eye position."""
         # normalize UD position to range 0..1 (Blickhöhe)
-        ud_pos = (self.servo_eyes_ver.target - self.servo_eyes_ver.min) / (self.servo_eyes_ver.max - self.servo_eyes_ver.min)
+        eyes_up_down_position_relative = (self.servo_eyes_ver.target - self.servo_eyes_ver.min) / (self.servo_eyes_ver.max - self.servo_eyes_ver.min)
 
-        # compute target positions for TL and TR based on UD position
-        tl_target = int(self.servo_left_lid.max - ((self.servo_left_lid.max - self.servo_left_lid.min) * (0.5 * (1 - ud_pos))) - LID_SYNC_OFFSET)
-        tr_target = int(self.servo_right_lid.min + ((self.servo_right_lid.max - self.servo_right_lid.min) * (0.5 * (1 - ud_pos))) + LID_SYNC_OFFSET)
+        # compute target positions for lids based on UD position
+        tl_target = int(self.servo_left_lid.max - ((self.servo_left_lid.max - self.servo_left_lid.min) * (0.5 * ( eyes_up_down_position_relative))) - LID_SYNC_OFFSET)
+        tr_target = int(self.servo_right_lid.min + ((self.servo_right_lid.max - self.servo_right_lid.min) * (0.5 * (1 - eyes_up_down_position_relative))) + LID_SYNC_OFFSET)
 
+        print(f"Lid sync targets: Left: {tl_target} ({self.servo_left_lid.min}-{self.servo_left_lid.max}), Right: {tr_target} ({self.servo_right_lid.min}-{self.servo_right_lid.max})"
+              f", Relative: {eyes_up_down_position_relative}")
         self.servo_left_lid.write(tl_target)
         self.servo_right_lid.write(tr_target)
+
+        # 140 = 170 - (170-90) * 0.5 * x     -10 = 140 (x=0.5)
+        # 80  = 90  + (10-90)  * 0.5 * (1-x) +10 = 80  (x=0.5)
 
     def neck_target(self):
         """Map eye movement (LR/UD) to base targets (but do not yet move the base); tweak multipliers as needed."""
@@ -211,17 +221,22 @@ class ServoController:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Follower Bot Controller")
+    parser.add_argument('--forward-serial', action='store_true', help='Forward serial communication to stdout/stderr and stdin for debugging')
+    args = parser.parse_args()
+
     hw = Hardware()
     controller = ServoController()
     reader = InputReader()
+    forward_serial = args.forward_serial
 
     # initial state
     neck_flag = False
     neck_trigger_time = 0
+    blink_trigger_time = 0
 
     # quick LED flash on start to indicate boot
     hw.led_flash(times=2, interval=0.12)
-
 
     print("Starte MainLoop")
     try:
@@ -242,31 +257,43 @@ def main():
                         if x_err is not None and y_err is not None:
                             # move eyes/eyelids
                             controller.move_eyes(x_err, y_err)
-                            print(f"Received position error: {x_err},{y_err}")
+                            if forward_serial:
+                                print(f"[SERIAL IN] {x_err},{y_err}")
+                            else:
+                                print(f"Received position error: {x_err},{y_err}")
                         else:
                             print(f"Could not decode position error from received line: {data}")
-                    else:
-                        print("No position error received")
+
+                    # Forward stdin to serial (simulate sending to device)
+                    if forward_serial:
+                        import select
+                        if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+                            user_input = sys.stdin.readline().strip()
+                            if user_input:
+                                # Here you would send to serial device, but for debug just echo
+                                print(f"[SERIAL OUT] {user_input}")
 
                     # random blink
-                    if random.random() < BLINK_PROBABILITY_PER_FRAME:
+                    if (blink_trigger_time == 0) or (monotonic_ms() > blink_trigger_time):
+                        blink_trigger_time = monotonic_ms() + MIN_BLINK_WAIT_MS + random.randint(0, MAX_BLINK_WAIT_MS - MIN_BLINK_WAIT_MS)
                         print("Blink eyes")
                         controller.blink_eyes()
-                        time.sleep(0.06)
+                        time.sleep(0.2)
 
                     # keep lids synced to UD position
                     controller.lid_sync()
 
                     # decide if neck should move
                     if (
-                        abs(controller.servo_eyes_ver.target - 90) >= DEADZONE_NECK
-                        or abs(controller.servo_eyes_hor.target - 90) >= DEADZONE_NECK
+                        abs(controller.servo_eyes_ver.target - controller.servo_eyes_ver.default) >= DEADZONE_NECK
+                        or abs(controller.servo_eyes_hor.target - controller.servo_eyes_hor.default) >= DEADZONE_NECK
                     ):
                         if not neck_flag:
                             neck_trigger_time = monotonic_ms()
                             neck_flag = True
 
                         if neck_flag and (monotonic_ms() - neck_trigger_time) >= NECK_DELAY_MS:
+                            print("Move neck")
                             controller.neck_target()
                             neck_flag = False
 
