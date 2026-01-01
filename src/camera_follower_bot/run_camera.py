@@ -23,6 +23,10 @@ def build_parser():
     p.add_argument('--model-path', default=None, help='Path to the MediaPipe TFLite model')
     p.add_argument('--camera-id', type=int, default=None, help='Camera device id (integer passed to OpenCV)')
     p.add_argument('--no-serial', action='store_true', help='Run without serial hardware (for testing)')
+    p.add_argument('--rotate180', dest='rotate180', action='store_true', default=True, help='Rotate camera image by 180 degrees (default: enabled)')
+    p.add_argument('--no-rotate180', dest='rotate180', action='store_false', help='Do not rotate camera image by 180 degrees')
+    p.add_argument('--flip', dest='flip', action='store_true', default=True, help='Flip camera image horizontally (default: enabled)')
+    p.add_argument('--no-flip', dest='flip', action='store_false', help='Do not flip camera image horizontally')
     return p
 
 
@@ -132,13 +136,23 @@ def main(argv=None):
     import src.camera_follower_bot.serial_manager as SM
 
     # Override model path and camera id if provided
-    if args.model_path:
+    if args.model_path is not None:
+        print("Setting MODEL_PATH to", args.model_path)
         camera_processor.MODEL_PATH = args.model_path
     if args.camera_id is not None:
+        print("Setting CAMERA_ID to", args.camera_id)
         camera_processor.CAMERA_ID = args.camera_id
+    # Set static attributes for process_frame
+    if args.rotate180 is not None:
+        print("Setting ROTATE_CAMERA to", args.rotate180)
+        camera_processor.ROTATE_CAMERA = args.rotate180
+    if args.flip is not None:
+        print("Setting FLIP_CAMERA to", args.flip)
+        camera_processor.FLIP_CAMERA = args.flip
 
     # Patch SerialManager used within CameraProcessor
     if args.no_serial:
+        print("Running without serial hardware (no-serial mode)")
         camera_processor.SerialManager = DummySerialManager
     else:
         # Create a factory that returns a SerialManager configured with the CLI args
