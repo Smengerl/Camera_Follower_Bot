@@ -34,6 +34,8 @@ class DummySerialManager:
     """
     def __init__(self, *args, **kwargs):
         self.port = kwargs.get('port') if kwargs else None
+        from collections import deque
+        self.stdout_buffer = deque(maxlen=100)
 
     def connect(self):
         return True
@@ -47,6 +49,15 @@ class DummySerialManager:
     def send_position(self, error_x, error_y):
         print(f"[no-serial] {error_x},{error_y}")
         return True
+    
+    def read_stdout(self):
+        return False
+    
+    def get_stdout_buffer(self, max_lines=None):
+        return []
+    
+    def clear_stdout_buffer(self):
+        pass
 
 
 def validate_model_path(path: str):

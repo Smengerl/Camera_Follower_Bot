@@ -146,6 +146,9 @@ def main():
 
             # Attempt non-blocking reconnects if needed
             serial_mgr.reconnect_if_needed()
+            
+            # Read any available stdout from the device
+            serial_mgr.read_stdout()
 
             if not serial_mgr.is_connected():
                 # Show human-friendly error text on frame
@@ -189,6 +192,22 @@ def main():
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.7,
             )
+            
+            # Display stdout from the device (last 5 lines)
+            stdout_lines = serial_mgr.get_stdout_buffer(max_lines=5)
+            if stdout_lines:
+                y_offset = 50  # Start below connection status
+                for idx, line in enumerate(stdout_lines):
+                    # Truncate long lines to fit on screen
+                    display_line = line[:80] if len(line) > 80 else line
+                    cv2.putText(
+                        img=annotated,
+                        text=f"Pico: {display_line}",
+                        org=(10, y_offset + idx * 20),
+                        color=(100, 200, 255),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.5,
+                    )
 
             # Display the annotated frame
             cv2.imshow('Mediapipe Face Tracking', annotated)
