@@ -27,6 +27,7 @@ def build_parser():
     p.add_argument('--no-rotate180', dest='rotate180', action='store_false', help='Do not rotate camera image by 180 degrees')
     p.add_argument('--flip', dest='flip', action='store_true', default=True, help='Flip camera image horizontally (default: enabled)')
     p.add_argument('--no-flip', dest='flip', action='store_false', help='Do not flip camera image horizontally')
+    p.add_argument('--forward-serial-stdio', action='store_true', dest='forward_serial_stdio', help='Tunnel all data read or written via serial to stdout')
     return p
 
 
@@ -37,9 +38,7 @@ class DummySerialManager:
     main loop runs but no data is sent.
     """
     def __init__(self, *args, **kwargs):
-        self.port = kwargs.get('port') if kwargs else None
-        from collections import deque
-        self.stdout_buffer = deque(maxlen=100)
+        pass
 
     def connect(self):
         return True
@@ -155,9 +154,16 @@ def main(argv=None):
         print("Running without serial hardware (no-serial mode)")
         camera_processor.SerialManager = DummySerialManager
     else:
+        if args.forward_serial_stdio is not None:
+            print("Setting FORWARD_SERIAL_STDIO to", args.forward_serial_stdio)
+        if args.baud is not None:
+            print("Setting SERIAL_BAUD to", args.baud)
+        if args.serial_port is not None:
+            print("Setting SERIAL_PORT to", args.serial_port)
+            
         # Create a factory that returns a SerialManager configured with the CLI args
         def _factory():
-            return SM.SerialManager(port=args.serial_port, baud=args.baud)
+            return SM.SerialManager(port=args.serial_port, baud=args.baud, forward_serial_stdio=args.forward_serial_stdio)
 
         camera_processor.SerialManager = _factory
 

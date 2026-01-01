@@ -25,7 +25,8 @@ class SerialManager:
 
     def __init__(self, port: str = SERIAL_PORT, baud: int = SERIAL_BAUD, timeout: float = 1.0,
                  min_backoff: float = 0.5, max_backoff: float = 30.0,
-                 stdout_buffer_size: int = DEFAULT_STDOUT_BUFFER_SIZE):
+                 stdout_buffer_size: int = DEFAULT_STDOUT_BUFFER_SIZE,
+                 forward_serial_stdio: bool = False):
         self.port = port
         self.baud = baud
         self.timeout = timeout
@@ -37,11 +38,14 @@ class SerialManager:
         self.attempt_count = 0
         self.next_attempt_time = 0.0
         self.last_error = None
-        
+
         # stdout buffering
         self.stdout_buffer_size = stdout_buffer_size
         self.stdout_buffer = deque(maxlen=stdout_buffer_size)
         self._partial_line = ""
+
+        # Tunnel serial to stdio
+        self.forward_serial_stdio = forward_serial_stdio
 
     def connect(self):
         """Try to open the serial port once. Returns True if successful."""
@@ -80,6 +84,8 @@ class SerialManager:
             return False
         try:
             self.ser.write(data)
+            if self.forward_serial_stdio:
+                print(f"Write: {data.decode().strip()}")
             return True
         except Exception as exc:
             # mark disconnected and schedule reconnect
@@ -113,39 +119,39 @@ class SerialManager:
     
     def read_stdout(self):
         """Read available stdout from the serial device and buffer it.
-        
-        This method reads all available data from the serial port without blocking.
-        Data is split into lines and added to the stdout buffer. Incomplete lines
-        are preserved for the next read.
-        
+        Also, if tunnel_stdio is enabled, forward received data to stdin.
         Returns True if data was read successfully, False otherwise.
         """
         if not self.is_connected():
             return False
         if self.ser is None:
             return False
-        
+
         try:
             # Read all available bytes without blocking
             if self.ser.in_waiting > 0:
                 data = self.ser.read(self.ser.in_waiting)
                 decoded = data.decode('utf-8', errors='replace')
-                
+
                 # Combine with any partial line from previous read
                 decoded = self._partial_line + decoded
-                
+
                 # Split into lines
                 lines = decoded.split('\n')
-                
+
                 # Last element might be incomplete line
                 self._partial_line = lines[-1]
-                
+
                 # Add complete lines to buffer
                 for line in lines[:-1]:
                     # Skip empty and whitespace-only lines
                     if line.strip():
                         self.stdout_buffer.append(line.rstrip('\r'))
-                
+
+                        # Forward to stdout if enabled
+                        if self.forward_serial_stdio:
+                            print(f"Read: {line}")
+
                 return True
             return False
         except Exception as exc:
