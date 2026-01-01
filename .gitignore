@@ -5,3 +5,4 @@ __pycache__/
 tests/.DS_Store
 models/
 !models/README.txt
+.DS_Store
