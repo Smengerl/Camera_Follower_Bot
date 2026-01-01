@@ -142,7 +142,8 @@ class SerialManager:
                 
                 # Add complete lines to buffer
                 for line in lines[:-1]:
-                    if line:  # Skip empty lines
+                    # Skip empty and whitespace-only lines
+                    if line.strip():
                         self.stdout_buffer.append(line.rstrip('\r'))
                 
                 return True

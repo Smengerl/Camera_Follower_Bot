@@ -16,6 +16,7 @@ from src.camera_follower_bot.serial_manager import SerialManager
 CAMERA_ID = 0  # change to swap camera
 HERE = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(HERE, "../../models/blaze_face_short_range.tflite")
+MAX_STDOUT_DISPLAY_LINE_LENGTH = 80  # Maximum characters to display per stdout line
 
 
 
@@ -199,7 +200,7 @@ def main():
                 y_offset = 50  # Start below connection status
                 for idx, line in enumerate(stdout_lines):
                     # Truncate long lines to fit on screen
-                    display_line = line[:80] if len(line) > 80 else line
+                    display_line = line[:MAX_STDOUT_DISPLAY_LINE_LENGTH] if len(line) > MAX_STDOUT_DISPLAY_LINE_LENGTH else line
                     cv2.putText(
                         img=annotated,
                         text=f"Pico: {display_line}",
