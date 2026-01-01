@@ -1,7 +1,5 @@
 import time
 import random
-import sys
-import argparse
 
 from input_reader import InputReader
 from machine import Pin, ADC
@@ -221,14 +219,9 @@ class ServoController:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Follower Bot Controller")
-    parser.add_argument('--forward-serial', action='store_true', help='Forward serial communication to stdout/stderr and stdin for debugging')
-    args = parser.parse_args()
-
     hw = Hardware()
     controller = ServoController()
     reader = InputReader()
-    forward_serial = args.forward_serial
 
     # initial state
     neck_flag = False
@@ -237,6 +230,7 @@ def main():
 
     # quick LED flash on start to indicate boot
     hw.led_flash(times=2, interval=0.12)
+
 
     print("Starte MainLoop")
     try:
@@ -257,21 +251,9 @@ def main():
                         if x_err is not None and y_err is not None:
                             # move eyes/eyelids
                             controller.move_eyes(x_err, y_err)
-                            if forward_serial:
-                                print(f"[SERIAL IN] {x_err},{y_err}")
-                            else:
-                                print(f"Received position error: {x_err},{y_err}")
+                            print(f"Received position error: {x_err},{y_err}")
                         else:
                             print(f"Could not decode position error from received line: {data}")
-
-                    # Forward stdin to serial (simulate sending to device)
-                    if forward_serial:
-                        import select
-                        if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-                            user_input = sys.stdin.readline().strip()
-                            if user_input:
-                                # Here you would send to serial device, but for debug just echo
-                                print(f"[SERIAL OUT] {user_input}")
 
                     # random blink
                     if (blink_trigger_time == 0) or (monotonic_ms() > blink_trigger_time):

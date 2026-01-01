@@ -21,7 +21,7 @@ HERE = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(HERE, "../../models/blaze_face_short_range.tflite")
 
 MAX_STDOUT_DISPLAY_LINE_LENGTH = 80  # Maximum characters to display per stdout line
-MAX_STDOUT_DISPLAY_LINE_NUMBERS = 5  # Maximum lines to display of stdout buffer
+MAX_STDOUT_DISPLAY_LINE_NUMBERS = 10  # Maximum lines to display of stdout buffer
 
 
 
@@ -160,7 +160,7 @@ def main():
                 frames_sent_since_reconnect = 0
                 cv2.putText(
                     img=annotated,
-                    text=f"Not connected (Port: {serial_mgr.port}, Baud: {serial_mgr.baud})",
+                    text=f"Not connected (Port: {serial_mgr.port}, Baud: {serial_mgr.baud}) - Press Esc to exit",
                     org=(10, 25),
                     color=(0, 0, 255),
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -168,7 +168,7 @@ def main():
             else:
                 cv2.putText(
                     img=annotated,
-                    text=f"Connected - Frames sent: {frames_sent_since_reconnect}",
+                    text=f"Connected - Frames sent: {frames_sent_since_reconnect} - Press Esc to exit",
                     org=(10, 25),
                     color=(255, 255, 255),
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
