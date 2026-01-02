@@ -314,3 +314,129 @@ def test_read_stdout_with_carriage_return(monkeypatch):
     assert len(buffer) == 2
     assert buffer[0] == 'Line 1'
     assert buffer[1] == 'Line 2'
+
+
+def test_send_relax_command_success(monkeypatch):
+    """Test sending RELAX command and receiving acknowledgment."""
+    class SerialWithRelaxAck:
+        def __init__(self, *a, **kw):
+            self.is_open = True
+            self._written = []
+            self._response = b'ACK_RELAX\n'
+
+        def write(self, data):
+            self._written.append(data)
+
+        @property
+        def in_waiting(self):
+            return len(self._response)
+
+        def read(self, size):
+            data = self._response[:size]
+            self._response = self._response[size:]
+            return data
+
+        def close(self):
+            self.is_open = False
+
+    monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': SerialWithRelaxAck}))
+    mgr = sm.SerialManager()
+    assert mgr.connect() is True
+    
+    # Send RELAX command
+    result = mgr.send_relax_command(timeout=0.5)
+    assert result is True
+    assert mgr.ser._written[0] == b'RELAX\n'
+
+
+def test_send_relax_command_timeout(monkeypatch):
+    """Test sending RELAX command without receiving acknowledgment."""
+    class SerialNoAck:
+        def __init__(self, *a, **kw):
+            self.is_open = True
+            self._written = []
+
+        def write(self, data):
+            self._written.append(data)
+
+        @property
+        def in_waiting(self):
+            return 0
+
+        def read(self, size):
+            return b''
+
+        def close(self):
+            self.is_open = False
+
+    monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': SerialNoAck}))
+    mgr = sm.SerialManager()
+    assert mgr.connect() is True
+    
+    # Send RELAX command with very short timeout
+    result = mgr.send_relax_command(timeout=0.1)
+    assert result is False
+    assert mgr.ser._written[0] == b'RELAX\n'
+
+
+def test_send_relax_command_not_connected(monkeypatch):
+    """Test sending RELAX command when not connected."""
+    monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': DummySerialFail}))
+    mgr = sm.SerialManager(min_backoff=0.01, max_backoff=0.02)
+    assert mgr.connect() is False
+    
+    # Try to send RELAX command
+    result = mgr.send_relax_command(timeout=0.5)
+    assert result is False
+
+
+def test_close_method_sends_relax(monkeypatch):
+    """Test that close method sends RELAX command."""
+    written_data = []
+    
+    class SerialWithRelaxAck:
+        def __init__(self, *a, **kw):
+            self.is_open = True
+            self._response = b'ACK_RELAX\n'
+            self._closed = False
+
+        def write(self, data):
+            written_data.append(data)
+
+        @property
+        def in_waiting(self):
+            return len(self._response) if not self._closed else 0
+
+        def read(self, size):
+            if self._closed:
+                return b''
+            data = self._response[:size]
+            self._response = self._response[size:]
+            return data
+
+        def close(self):
+            self._closed = True
+            self.is_open = False
+
+    monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': SerialWithRelaxAck}))
+    mgr = sm.SerialManager()
+    assert mgr.connect() is True
+    
+    # Close the manager
+    mgr.close()
+    
+    # Verify RELAX was sent (captured in outer scope)
+    assert len(written_data) > 0
+    assert written_data[0] == b'RELAX\n'
+    assert mgr.ser is None
+
+
+def test_close_method_when_not_connected(monkeypatch):
+    """Test that close method handles not being connected."""
+    monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': DummySerialFail}))
+    mgr = sm.SerialManager(min_backoff=0.01, max_backoff=0.02)
+    assert mgr.connect() is False
+    
+    # Close should not raise an error
+    mgr.close()
+    assert mgr.ser is None

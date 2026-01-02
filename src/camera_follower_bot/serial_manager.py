@@ -9,6 +9,8 @@ SERIAL_PORT = '/dev/cu.usbmodem101'
 SERIAL_BAUD = 115200
 DEFAULT_STDOUT_BUFFER_SIZE = 100  # Number of lines to keep in stdout buffer
 
+SERVO_RELAX_TIMEOUT_SECONDS = 2.0  # Timeout for servo relax acknowledgment
+
 class SerialManager:
     """Manage a serial connection with non-blocking exponential backoff reconnects.
 
@@ -186,3 +188,58 @@ class SerialManager:
         """Clear the stdout buffer."""
         self.stdout_buffer.clear()
         self._partial_line = ""
+    
+    def send_relax_command(self, timeout: float = SERVO_RELAX_TIMEOUT_SECONDS):
+        """Send RELAX command to microcontroller and wait for acknowledgment.
+        
+        Args:
+            timeout: Maximum time to wait for acknowledgment in seconds.
+            
+        Returns:
+            True if acknowledgment received, False otherwise.
+        """
+        if not self.is_connected():
+            return False
+        
+        # Clear buffer before sending to avoid false positives from old data
+        initial_buffer_len = len(self.stdout_buffer)
+        
+        # Send RELAX command
+        if not self.write(b'RELAX\n'):
+            return False
+        
+        # Wait for acknowledgment
+        start_time = time.time()
+        while (time.time() - start_time) < timeout:
+            # Read available data
+            if self.read_stdout():
+                # Check only new lines added since we started
+                stdout_lines = self.get_stdout_buffer()
+                for line in stdout_lines[initial_buffer_len:]:
+                    if line.strip() == 'ACK_RELAX':
+                        print(f"Servo relaxation confirmed: {line}")
+                        return True
+            
+            # Small sleep to avoid busy-waiting
+            time.sleep(0.01)
+        
+        # Timeout reached without acknowledgment
+        print("Warning: Servo relaxation acknowledgment not received within timeout")
+        return False
+    
+    def close(self):
+        """Close the serial connection gracefully.
+        
+        Attempts to send RELAX command before closing.
+        """
+        if self.is_connected() and self.ser is not None:
+            # Try to relax servos before closing
+            self.send_relax_command(timeout=1.0)
+            
+            # Close the connection
+            try:
+                self.ser.close()
+            except Exception:
+                pass
+            
+            self.ser = None
