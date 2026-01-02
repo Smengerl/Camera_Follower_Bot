@@ -9,6 +9,8 @@ SERIAL_PORT = '/dev/cu.usbmodem101'
 SERIAL_BAUD = 115200
 DEFAULT_STDOUT_BUFFER_SIZE = 100  # Number of lines to keep in stdout buffer
 
+SERVO_RELAX_TIMEOUT_SECONDS = 2.0  # Timeout for servo relax acknowledgment
+
 class SerialManager:
     """Manage a serial connection with non-blocking exponential backoff reconnects.
 
@@ -187,7 +189,7 @@ class SerialManager:
         self.stdout_buffer.clear()
         self._partial_line = ""
     
-    def send_relax_command(self, timeout: float = 1.0):
+    def send_relax_command(self, timeout: float = SERVO_RELAX_TIMEOUT_SECONDS):
         """Send RELAX command to microcontroller and wait for acknowledgment.
         
         Args:
