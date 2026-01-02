@@ -1,16 +1,10 @@
 
-# About
-
-Camera Follower Bot is a Python-based system for real-time face and pose tracking with a webcam, controlling a microcontroller to follow detected targets.
-
-<!--
-Suggested GitHub Topics/Tags:
-robotics, computer-vision, python, opencv, mediapipe, microcontroller, raspberry-pi-pico, micropython, face-detection, pose-estimation, serial-communication, automation, hardware, camera, tracking, real-time
--->
 # Camera Follower Bot
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
+[![3D Printing](https://img.shields.io/badge/3D_printing-STL-green)](#)
+
 
 ## Project Overview
 
