@@ -77,8 +77,9 @@ class ServoConfig:
         self.max = max_pos
         self.default = default
         self.target = default
+        self.pin = Pin(pin)
         
-        self.pwm = PWM(Pin(pin))
+        self.pwm = PWM(self.pin)
         self.pwm.freq(SERVO_FREQUENCY_HZ)  # Standard servo frequency
 
         #self.servo = Servo(pin_id=pin)
@@ -100,11 +101,18 @@ class ServoConfig:
         current_us=angle / SERVO_RANGE_DEG * (SERVO_MAX_US-SERVO_MIN_US) + SERVO_MIN_US;
         self.pwm.duty_ns(int(current_us*1000.0))
 
+
+        print(f"Servo on pin {self.pin} set to angle {angle} (limits: {lo}-{hi}) = {current_us}us pulse")
+
         self.target = angle
 
     def calibrate(self):
         """Move servo to default position."""
         self.write(self.default)
+
+    def relax(self):
+        """Deactivate servo PWM signal."""
+        self.pwm.deinit()
 
 
     def move_to_target(self, error, kp, deadzone):
@@ -154,14 +162,19 @@ class ServoController:
         """Calibrate all servos to default position (e.g. in hold mode)."""
         self.servo_eyes_hor.calibrate()
         self.servo_eyes_ver.calibrate()
-        self.servo_left_lid.write(self.servo_left_lid.min)
-        self.servo_right_lid.write(self.servo_right_lid.max)
-        self.servo_neck_hor.write(self.servo_neck_hor.max)
+        self.servo_left_lid.calibrate()
+        self.servo_right_lid.calibrate()
+        self.servo_neck_hor.calibrate()
         self.servo_neck_ver.calibrate()
 
     def relax(self):
         """Relax all servos to their default position."""
-        self.calibrate()
+        self.servo_eyes_hor.relax()
+        self.servo_eyes_ver.relax()
+        self.servo_left_lid.relax()
+        self.servo_right_lid.relax()
+        self.servo_neck_hor.relax()
+        self.servo_neck_ver.relax()
 
     def move_eyes(self, x_error, y_error):
         """Move eye servos based on x and y error values."""
@@ -254,41 +267,48 @@ def main():
                 # calibration mode — center all servos
                 print("Hold mode active")
                 controller.calibrate()
-                time.sleep(1)
-                # Test
+                #time.sleep(1)
+                
                 print("Neck Horizontal Sweep Test")
-                controller.servo_neck_hor.write(60)
+                controller.servo_neck_hor.write(controller.servo_neck_hor.min)
                 time.sleep(1)
-                controller.servo_neck_hor.write(120)
+                controller.servo_neck_hor.write(controller.servo_neck_hor.max)
                 time.sleep(1)
+                controller.servo_neck_hor.calibrate()
 
                 #print("Neck Vertical Sweep Test")
-                #controller.servo_neck_ver.write(60)
+                #controller.servo_neck_ver.write(controller.servo_neck_ver.min)
                 #time.sleep(1)
-                #controller.servo_neck_ver.write(120)
+                #controller.servo_neck_ver.write(controller.servo_neck_ver.max)
                 #time.sleep(1)
+                #controller.servo_neck_ver.calibrate()
 
                 print("Left Lid Sweep Test")
-                controller.servo_left_lid.write(90)
+                controller.servo_left_lid.write(controller.servo_left_lid.min)
                 time.sleep(1)
-                controller.servo_left_lid.write(120)
+                controller.servo_left_lid.write(controller.servo_left_lid.max)
                 time.sleep(1)
+                controller.servo_left_lid.calibrate()
+
                 print("Right Lid Sweep Test")
-                controller.servo_right_lid.write(90)
+                controller.servo_right_lid.write(controller.servo_right_lid.min)
                 time.sleep(1)
-                controller.servo_right_lid.write(60)
+                controller.servo_right_lid.write(controller.servo_right_lid.max)
                 time.sleep(1)
+                controller.servo_right_lid.calibrate()
 
                 #print("Eyes Sweep Test")
-                #controller.servo_eyes_ver.write(60)
-                #controller.servo_eyes_hor.write(60)
+                #controller.servo_eyes_ver.write(controller.servo_eyes_ver.min)
+                #controller.servo_eyes_hor.write(controller.servo_eyes_hor.min)
                 #time.sleep(1)
-                #controller.servo_eyes_ver.write(120)
+                #controller.servo_eyes_ver.write(controller.servo_eyes_ver.max)
                 #time.sleep(1)
-                #controller.servo_eyes_hor.write(120)
+                #controller.servo_eyes_hor.write(controller.servo_eyes_hor.max)
                 #time.sleep(1)
-                #controller.servo_eyes_ver.write(60)
+                #controller.servo_eyes_ver.write(controller.servo_eyes_ver.min)
                 #time.sleep(1)
+                #controller.servo_eyes_ver.calibrate()
+                #controller.servo_eyes_hor.calibrate()
             elif mode == Mode.AUTO:
                 # auto mode
                 if hw.is_enabled():
