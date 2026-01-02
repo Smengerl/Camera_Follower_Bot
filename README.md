@@ -1,36 +1,43 @@
+
 # Camera Follower Bot
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
-Lightweight camera follower that detects faces/poses and drives a microcontroller via serial to track them. This repository contains a more robust, testable, and scriptable rework of the original "camera follower robot" project by Will Cogley https://willcogley.notion.site/ .
+## Project Overview
+
+Camera Follower Bot is a lightweight, real-time camera tracking system that detects faces and poses, then drives a microcontroller via serial communication to physically track them. This project is a robust, testable, and scriptable rework of the original "camera follower robot" project by Will Cogley (https://willcogley.notion.site/).
+
+It is designed for hobbyists and developers who want to build a camera-based tracking robot using Python, MediaPipe, OpenCV, and a microcontroller such as the Raspberry Pi Pico running MicroPython.
 
 Table of Contents
------------------
 - Features
-- Quickstart
-  - Initial setup (venv & model)
 - Usage
 - Development
 - Contributing
 - License
 
-Features
+Features/improvements
 --------
 - Real-time camera processing using MediaPipe / OpenCV
 - Simple CLI for running and configuring the processor
-- Reconnect/backoff logic for serial communication
+- Reconnect/backoff logic for serial communication with Raspberry Pi running the robot
+- Displaying of robot logs on computer preview window
 - Unit tests and pytest configuration
 - Migrated to new MediaPipe APIs
 - Helper scripts to setup venv, run tests, and run the processor
 
+
 Prerequisites
 -------------
 - Python 3.8 or newer
-- Camera device (USB or built-in)
-- Optional: a microcontroller listening on a serial port to receive commands
 
-Quickstart
+Hardware Requirements
+---------------------
+- A Raspberry Pi Pico or similar microcontroller running MicroPython, connected via serial port to receive commands
+- Webcam connected to host computer
+
+Usage
 ----------
 1. Create the virtual environment and install dependencies (scripted):
 
@@ -41,25 +48,22 @@ Quickstart
 2. Download the MediaPipe BlazeFace TFLite model and place it into `models/`.
    See `models/README.txt` for instructions and an example filename (`blaze_face_short_range.tflite`).
 
-3. Run the camera processor and point it to the model file:
 
-```bash
-./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
-```
-
-Usage
------
-- Run tests (uses the repo venv python):
+3. Run tests (uses the repo venv python):
 
 ```bash
 ./scripts/test.sh
 ```
 
-- Run the processor:
+4. Connect a microcontroller runnning micro python via USB to Serial and upload the files in `src/camera_follower_bot/rpi_pico_code/` to the device. Make sure to have `src/camera_follower_bot/rpi_pico_code/follower_bot.py` to be auto started (e.g. renaming it to main.py when uploaded). Reboot the microcontoller and leave it connected to your computer.
+
+5. Run the camera processor on your computer and point it to the model file:
 
 ```bash
-./scripts/run_camera.sh
+./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
 ```
+
+6. Check if the camera preview window opens and the computer connects to the microcontroller (visible when you see the microcontroller's output). If this fails, adapt your settings/parameters (see below)
 
 Options
 -------
@@ -68,6 +72,12 @@ Options
 - `--baud` Serial baud rate (default: see project defaults)
 - `--camera-id` Camera device id (integer passed to OpenCV)
 - `--no-serial` Run without serial hardware (useful for testing)
+- `--rotate180` 'Rotate camera image by 180 degrees (default: enabled)'
+- `--no-rotate180` 'Do not rotate camera image by 180 degrees
+- `--flip` 'Flip camera image horizontally (default: enabled)'
+- `--no-flip` 'Do not flip camera image horizontally'
+- `--forward-serial-stdio` 'Tunnel all data read or written via serial to stdout'
+
 
 Development
 -----------
