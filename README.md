@@ -1,4 +1,12 @@
 
+# About
+
+Camera Follower Bot is a Python-based system for real-time face and pose tracking with a webcam, controlling a microcontroller to follow detected targets.
+
+<!--
+Suggested GitHub Topics/Tags:
+robotics, computer-vision, python, opencv, mediapipe, microcontroller, raspberry-pi-pico, micropython, face-detection, pose-estimation, serial-communication, automation, hardware, camera, tracking, real-time
+-->
 # Camera Follower Bot
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#)
@@ -72,11 +80,9 @@ Options
 - `--baud` Serial baud rate (default: see project defaults)
 - `--camera-id` Camera device id (integer passed to OpenCV)
 - `--no-serial` Run without serial hardware (useful for testing)
-- `--rotate180` 'Rotate camera image by 180 degrees (default: enabled)'
-- `--no-rotate180` 'Do not rotate camera image by 180 degrees
-- `--flip` 'Flip camera image horizontally (default: enabled)'
-- `--no-flip` 'Do not flip camera image horizontally'
-- `--forward-serial-stdio` 'Tunnel all data read or written via serial to stdout'
+- `--rotate180` / `--no-rotate180` Rotate camera image by 180 degrees (default: enabled)
+- `--flip` / `--no-flip` Flip camera image horizontally (default: enabled)
+- `--forward-serial-stdio` Tunnel all data read or written via serial to stdout
 
 
 Development
