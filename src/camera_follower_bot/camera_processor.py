@@ -14,14 +14,20 @@ from src.camera_follower_bot.serial_manager import SerialManager
 # Configuration / constants
 # ---------------------------
 CAMERA_ID = 0  # change to swap camera
+ROTATE_CAMERA = True
+FLIP_CAMERA = True
+
 HERE = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(HERE, "../../models/blaze_face_short_range.tflite")
 
+MAX_STDOUT_DISPLAY_LINE_LENGTH = 80  # Maximum characters to display per stdout line
+MAX_STDOUT_DISPLAY_LINE_NUMBERS = 10  # Maximum lines to display of stdout buffer
 
 
 
 
-def make_face_detector(model_path: str = MODEL_PATH):
+
+def make_face_detector(model_path: str):
     """Create and return a MediaPipe FaceDetector configured for IMAGE mode.
 
     Keeping creation in one function makes it easier to swap models or options.
@@ -40,7 +46,7 @@ def make_face_detector(model_path: str = MODEL_PATH):
 
 
 
-def open_camera(camera_id: int = CAMERA_ID):
+def open_camera(camera_id: int):
     """Open camera and return capture plus frame center coordinates.
 
     Returns: (cap, frame_width, frame_height, center_x, center_y)
@@ -55,18 +61,20 @@ def open_camera(camera_id: int = CAMERA_ID):
 
 
 
-def process_frame(frame, detector, center_x, center_y):
+def process_frame(frame, detector, center_x, center_y, rotate_camera, flip_camera):
     """Process a BGR OpenCV frame, run face detection and return (annotated_frame, error_x, error_y).
 
     Steps:
-    - rotate / flip to match camera orientation
+    - rotate / flip to match camera orientation (parametrizable)
     - convert BGR->RGB and build MediaPipe Image
     - detect faces and annotate frame with bbox + confidence
     - compute pixel error relative to frame center
     """
     # Normalize orientation to match how the camera is mounted
-    frame = cv2.rotate(frame, cv2.ROTATE_180)
-    frame = cv2.flip(frame, 1)
+    if rotate_camera:
+        frame = cv2.rotate(frame, cv2.ROTATE_180)
+    if flip_camera:
+        frame = cv2.flip(frame, 1)
 
     # Convert BGR to RGB for mediapipe
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -129,10 +137,10 @@ def main():
     last_send = 0
 
     # Create face detector
-    detector = make_face_detector()
+    detector = make_face_detector(MODEL_PATH)
 
     # Open camera and compute center
-    cap, frame_width, frame_height, center_x, center_y = open_camera()
+    cap, frame_width, frame_height, center_x, center_y = open_camera(CAMERA_ID)
 
     frames_sent_since_reconnect = 0
 
@@ -142,17 +150,17 @@ def main():
             if not ret:
                 break
 
-            annotated, error_x, error_y = process_frame(frame, detector, center_x, center_y)
+            annotated, error_x, error_y = process_frame(frame, detector, center_x, center_y, ROTATE_CAMERA, FLIP_CAMERA)
 
             # Attempt non-blocking reconnects if needed
             serial_mgr.reconnect_if_needed()
-
+            
             if not serial_mgr.is_connected():
                 # Show human-friendly error text on frame
                 frames_sent_since_reconnect = 0
                 cv2.putText(
                     img=annotated,
-                    text=f"Not connected (Port: {serial_mgr.port}, Baud: {serial_mgr.baud})",
+                    text=f"Not connected (Port: {serial_mgr.port}, Baud: {serial_mgr.baud}) - Press Esc to exit",
                     org=(10, 25),
                     color=(0, 0, 255),
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -160,7 +168,7 @@ def main():
             else:
                 cv2.putText(
                     img=annotated,
-                    text=f"Connected - Frames sent: {frames_sent_since_reconnect}",
+                    text=f"Connected - Frames sent: {frames_sent_since_reconnect} - Press Esc to exit",
                     org=(10, 25),
                     color=(255, 255, 255),
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -181,6 +189,7 @@ def main():
             else:
                text = f"No face detected"
                  
+            # Display detection results
             cv2.putText(
                 img=annotated,
                 text=text,
@@ -189,6 +198,25 @@ def main():
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=0.7,
             )
+
+            # Read any available stdout from the device
+            serial_mgr.read_stdout()
+
+            # Display stdout from the device (last MAX_STDOUT_DISPLAY_LINES lines)
+            stdout_lines = serial_mgr.get_stdout_buffer(max_lines=MAX_STDOUT_DISPLAY_LINE_NUMBERS)
+            if stdout_lines:
+                y_offset = 80  # Start below connection status
+                for idx, line in enumerate(stdout_lines):
+                    # Truncate long lines to fit on screen
+                    display_line = line[:MAX_STDOUT_DISPLAY_LINE_LENGTH] if len(line) > MAX_STDOUT_DISPLAY_LINE_LENGTH else line
+                    cv2.putText(
+                        img=annotated,
+                        text=display_line,
+                        org=(10, y_offset + idx * 20),
+                        color=(255, 255, 255) if serial_mgr.is_connected() else (100, 100, 100),
+                        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.7,
+                    )
 
             # Display the annotated frame
             cv2.imshow('Mediapipe Face Tracking', annotated)
