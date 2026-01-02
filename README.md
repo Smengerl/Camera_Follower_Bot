@@ -69,14 +69,17 @@ Usage
 
 Options
 -------
-- `--model-path` Path to a TFLite model file (default: see project defaults)
-- `--serial-port` Serial device path (default: see project defaults)
-- `--baud` Serial baud rate (default: see project defaults)
-- `--camera-id` Camera device id (integer passed to OpenCV)
-- `--no-serial` Run without serial hardware (useful for testing)
+
+Running the `scripts/run_camera.sh` script you can pass the following parameters:
+
+- `--model-path` Path to a TFLite model file (default: /models/blaze_face_short_range.tflite)
+- `--serial-port` Serial device path (default: /dev/cu.usbmodem101)
+- `--baud` Serial baud rate (default: 115200)
+- `--camera-id` Camera device id for OpenCV (default: 0)
+- `--no-serial` Run without serial hardware, e.g. useful for testing (default: disabled)
 - `--rotate180` / `--no-rotate180` Rotate camera image by 180 degrees (default: enabled)
 - `--flip` / `--no-flip` Flip camera image horizontally (default: enabled)
-- `--forward-serial-stdio` Tunnel all data read or written via serial to stdout
+- `--forward-serial-stdio` Tunnel all data read or written via serial to stdout (default: disabled)
 
 
 Development

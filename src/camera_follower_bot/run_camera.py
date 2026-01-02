@@ -18,16 +18,16 @@ import os
 
 def build_parser():
     p = argparse.ArgumentParser(description='Run Camera Follower with configurable options')
-    p.add_argument('--serial-port', default='/dev/cu.usbmodem101', help='Serial device path')
-    p.add_argument('--baud', type=int, default=115200, help='Serial baud rate')
-    p.add_argument('--model-path', default=None, help='Path to the MediaPipe TFLite model')
-    p.add_argument('--camera-id', type=int, default=None, help='Camera device id (integer passed to OpenCV)')
+    p.add_argument('--serial-port', help='Serial device path')
+    p.add_argument('--baud', type=int, help='Serial baud rate')
+    p.add_argument('--model-path', help='Path to the MediaPipe TFLite model')
+    p.add_argument('--camera-id', type=int, help='Camera device id (integer passed to OpenCV)')
     p.add_argument('--no-serial', action='store_true', help='Run without serial hardware (for testing)')
-    p.add_argument('--rotate180', dest='rotate180', action='store_true', default=True, help='Rotate camera image by 180 degrees (default: enabled)')
+    p.add_argument('--rotate180', dest='rotate180', default=None, action='store_true', help='Rotate camera image by 180 degrees (default: enabled)')
     p.add_argument('--no-rotate180', dest='rotate180', action='store_false', help='Do not rotate camera image by 180 degrees')
-    p.add_argument('--flip', dest='flip', action='store_true', default=True, help='Flip camera image horizontally (default: enabled)')
+    p.add_argument('--flip', dest='flip', default=None, action='store_true', help='Flip camera image horizontally (default: enabled)')
     p.add_argument('--no-flip', dest='flip', action='store_false', help='Do not flip camera image horizontally')
-    p.add_argument('--forward-serial-stdio', action='store_true', dest='forward_serial_stdio', help='Tunnel all data read or written via serial to stdout')
+    p.add_argument('--forward-serial-stdio', default=None, action='store_true', dest='forward_serial_stdio', help='Tunnel all data read or written via serial to stdout')
     return p
 
 

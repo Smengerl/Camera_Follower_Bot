@@ -13,9 +13,9 @@ from src.camera_follower_bot.serial_manager import SerialManager
 # ---------------------------
 # Configuration / constants
 # ---------------------------
-CAMERA_ID = 0  # change to swap camera
-ROTATE_CAMERA = True
-FLIP_CAMERA = True
+CAMERA_ID = 0 # Default camera index for OpenCV
+ROTATE_CAMERA = True # Rotate camera image by 180 degrees
+FLIP_CAMERA = True # Flip camera image horizontally
 
 HERE = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(HERE, "../../models/blaze_face_short_range.tflite")
