@@ -2,8 +2,8 @@ import time
 import random
 
 from input_reader import InputReader
-from machine import Pin, ADC
-from servo import Servo
+from machine import Pin, ADC, PWM
+#from servo import Servo
 
 # --- Configuration ---
 DEADZONE_EYE = 25 # Beyond this threshold of target movement from center position, eye servos will move
@@ -19,6 +19,10 @@ MAX_BLINK_WAIT_MS = 5000 # Maximum wait time between two blinks (ms)
 LID_SYNC_OFFSET = -30  # Offset to keep eyelids slightly more closed than eye vertical position
 NECK_SPEED_DEG_PER_S=60 # Speed of neck movement in degrees per second
 
+SERVO_FREQUENCY_HZ = 50  # Standard servo frequency
+SERVO_MIN_US = 544.0
+SERVO_MAX_US = 2400.0
+SERVO_RANGE_DEG = 180.0
 
 # Compatibility for time.monotonic() in MicroPython
 try:
@@ -73,7 +77,11 @@ class ServoConfig:
         self.max = max_pos
         self.default = default
         self.target = default
-        self.servo = Servo(pin_id=pin)
+        
+        self.pwm = PWM(Pin(pin))
+        self.pwm.freq(SERVO_FREQUENCY_HZ)  # Standard servo frequency
+
+        #self.servo = Servo(pin_id=pin)
         
 
     def write(self, angle):
@@ -87,7 +95,11 @@ class ServoConfig:
         # Make sure angle is within bounds
         angle = min(max(lo, angle), hi)
     
-        self.servo.write(angle)
+        #self.servo.write(angle)
+        
+        current_us=angle / SERVO_RANGE_DEG * (SERVO_MAX_US-SERVO_MIN_US) + SERVO_MIN_US;
+        self.pwm.duty_ns(int(current_us*1000.0))
+
         self.target = angle
 
     def calibrate(self):
@@ -238,10 +250,45 @@ def main():
         while True:
             mode = hw.get_mode()
             if mode == Mode.HOLD:
+
                 # calibration mode — center all servos
                 print("Hold mode active")
                 controller.calibrate()
-                time.sleep(0.5)
+                time.sleep(1)
+                # Test
+                print("Neck Horizontal Sweep Test")
+                controller.servo_neck_hor.write(60)
+                time.sleep(1)
+                controller.servo_neck_hor.write(120)
+                time.sleep(1)
+
+                #print("Neck Vertical Sweep Test")
+                #controller.servo_neck_ver.write(60)
+                #time.sleep(1)
+                #controller.servo_neck_ver.write(120)
+                #time.sleep(1)
+
+                print("Left Lid Sweep Test")
+                controller.servo_left_lid.write(90)
+                time.sleep(1)
+                controller.servo_left_lid.write(120)
+                time.sleep(1)
+                print("Right Lid Sweep Test")
+                controller.servo_right_lid.write(90)
+                time.sleep(1)
+                controller.servo_right_lid.write(60)
+                time.sleep(1)
+
+                #print("Eyes Sweep Test")
+                #controller.servo_eyes_ver.write(60)
+                #controller.servo_eyes_hor.write(60)
+                #time.sleep(1)
+                #controller.servo_eyes_ver.write(120)
+                #time.sleep(1)
+                #controller.servo_eyes_hor.write(120)
+                #time.sleep(1)
+                #controller.servo_eyes_ver.write(60)
+                #time.sleep(1)
             elif mode == Mode.AUTO:
                 # auto mode
                 if hw.is_enabled():
