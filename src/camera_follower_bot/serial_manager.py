@@ -199,6 +199,9 @@ class SerialManager:
         if not self.is_connected():
             return False
         
+        # Clear buffer before sending to avoid false positives from old data
+        initial_buffer_len = len(self.stdout_buffer)
+        
         # Send RELAX command
         if not self.write(b'RELAX\n'):
             return False
@@ -208,10 +211,10 @@ class SerialManager:
         while (time.time() - start_time) < timeout:
             # Read available data
             if self.read_stdout():
-                # Check if ACK_RELAX is in the buffer
+                # Check only new lines added since we started
                 stdout_lines = self.get_stdout_buffer()
-                for line in stdout_lines:
-                    if 'ACK_RELAX' in line:
+                for line in stdout_lines[initial_buffer_len:]:
+                    if line.strip() == 'ACK_RELAX':
                         print(f"Servo relaxation confirmed: {line}")
                         return True
             
