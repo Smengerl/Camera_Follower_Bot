@@ -39,7 +39,7 @@ def test_face_detection_on_static_image():
     center_x = w // 2
     center_y = h // 2
 
-    annotated, error_x, error_y = cp.process_frame(img, detector, center_x, center_y)
+    annotated, error_x, error_y = cp.process_frame(img, detector, center_x, center_y, )
 
     # Sanity checks: annotated image returned and error values are either None or ints
     assert annotated is not None
