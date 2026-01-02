@@ -61,7 +61,7 @@ def open_camera(camera_id: int):
 
 
 
-def process_frame(frame, detector, center_x, center_y, rotate_camera, flip_camera):
+def process_frame(frame, detector, center_x, center_y, rotate_camera: bool = ROTATE_CAMERA, flip_camera: bool = FLIP_CAMERA):
     """Process a BGR OpenCV frame, run face detection and return (annotated_frame, error_x, error_y).
 
     Steps:
