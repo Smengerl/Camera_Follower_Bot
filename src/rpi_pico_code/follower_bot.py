@@ -314,6 +314,13 @@ def main():
                 if hw.is_enabled():
                     data = reader.read_latest()
                     if data:
+                        # Check if it's a special command
+                        if len(data) == 1 and data[0] == 'RELAX':
+                            print("RELAX command received - relaxing all servos")
+                            controller.relax()
+                            print("ACK_RELAX")
+                            continue
+                        
                         x_err, y_err = data
                         if x_err is not None and y_err is not None:
                             # move eyes/eyelids

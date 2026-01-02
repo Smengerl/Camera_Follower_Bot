@@ -224,6 +224,8 @@ def main():
             if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit
                 break
     finally:
+        # Gracefully close serial connection (will relax servos)
+        serial_mgr.close()
         cap.release()
         cv2.destroyAllWindows()
 

@@ -3,13 +3,29 @@ import select
 
 
 class InputReader:
-    """Non-blocking stdin reader that returns the latest x,y pair or None."""
+    """Non-blocking stdin reader that returns the latest x,y pair or None.
+    
+    Also handles special commands like 'RELAX' for servo control.
+    """
     
     @staticmethod
     def decode_line(line):
-        """Decode a line of positional data."""
+        """Decode a line of positional data or a special command.
+        
+        Returns:
+            - (x, y) tuple for position data
+            - ('RELAX',) tuple for relax command
+            - (None, None) for invalid data
+        """
+        stripped = line.strip()
+        
+        # Check for special commands
+        if stripped == "RELAX":
+            return ('RELAX',)
+        
+        # Try to decode as position data
         try:
-            x_str, y_str = line.strip().split(",")
+            x_str, y_str = stripped.split(",")
             return int(x_str), int(y_str)
         except Exception:
             return None, None

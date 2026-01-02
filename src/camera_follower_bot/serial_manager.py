@@ -186,3 +186,55 @@ class SerialManager:
         """Clear the stdout buffer."""
         self.stdout_buffer.clear()
         self._partial_line = ""
+    
+    def send_relax_command(self, timeout: float = 1.0):
+        """Send RELAX command to microcontroller and wait for acknowledgment.
+        
+        Args:
+            timeout: Maximum time to wait for acknowledgment in seconds.
+            
+        Returns:
+            True if acknowledgment received, False otherwise.
+        """
+        if not self.is_connected():
+            return False
+        
+        # Send RELAX command
+        if not self.write(b'RELAX\n'):
+            return False
+        
+        # Wait for acknowledgment
+        start_time = time.time()
+        while (time.time() - start_time) < timeout:
+            # Read available data
+            if self.read_stdout():
+                # Check if ACK_RELAX is in the buffer
+                stdout_lines = self.get_stdout_buffer()
+                for line in stdout_lines:
+                    if 'ACK_RELAX' in line:
+                        print(f"Servo relaxation confirmed: {line}")
+                        return True
+            
+            # Small sleep to avoid busy-waiting
+            time.sleep(0.01)
+        
+        # Timeout reached without acknowledgment
+        print("Warning: Servo relaxation acknowledgment not received within timeout")
+        return False
+    
+    def close(self):
+        """Close the serial connection gracefully.
+        
+        Attempts to send RELAX command before closing.
+        """
+        if self.is_connected() and self.ser is not None:
+            # Try to relax servos before closing
+            self.send_relax_command(timeout=1.0)
+            
+            # Close the connection
+            try:
+                self.ser.close()
+            except Exception:
+                pass
+            
+            self.ser = None

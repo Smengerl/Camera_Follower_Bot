@@ -24,6 +24,9 @@ def test_encode_static(line, expected):
     ("3,", (None, None)),
     ("2", (None, None)),
     ("", (None, None)),
+    ("RELAX\n", ('RELAX',)),
+    ("RELAX", ('RELAX',)),
+    ("  RELAX  \n", ('RELAX',)),
 ])
 def test_decode_static(line, expected):
     decoded = InputReader.decode_line(line)
