@@ -235,10 +235,45 @@ def main():
         while True:
             mode = hw.get_mode()
             if mode == Mode.HOLD:
+
                 # calibration mode — center all servos
                 print("Hold mode active")
                 controller.calibrate()
-                time.sleep(0.5)
+                time.sleep(1)
+                # Test
+                print("Neck Horizontal Sweep Test")
+                controller.servo_neck_hor.write(60)
+                time.sleep(1)
+                controller.servo_neck_hor.write(120)
+                time.sleep(1)
+
+                #print("Neck Vertical Sweep Test")
+                #controller.servo_neck_ver.write(60)
+                #time.sleep(1)
+                #controller.servo_neck_ver.write(120)
+                #time.sleep(1)
+
+                print("Left Lid Sweep Test")
+                controller.servo_left_lid.write(90)
+                time.sleep(1)
+                controller.servo_left_lid.write(120)
+                time.sleep(1)
+                print("Right Lid Sweep Test")
+                controller.servo_right_lid.write(90)
+                time.sleep(1)
+                controller.servo_right_lid.write(60)
+                time.sleep(1)
+
+                #print("Eyes Sweep Test")
+                #controller.servo_eyes_ver.write(60)
+                #controller.servo_eyes_hor.write(60)
+                #time.sleep(1)
+                #controller.servo_eyes_ver.write(120)
+                #time.sleep(1)
+                #controller.servo_eyes_hor.write(120)
+                #time.sleep(1)
+                #controller.servo_eyes_ver.write(60)
+                #time.sleep(1)
             elif mode == Mode.AUTO:
                 # auto mode
                 if hw.is_enabled():
