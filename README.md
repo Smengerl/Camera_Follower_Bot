@@ -39,6 +39,8 @@ Hardware Requirements
 - A Raspberry Pi Pico or similar microcontroller running MicroPython, connected via serial port to receive commands
 - Webcam connected to host computer
 
+<img src="./hardware.png">
+
 Usage
 ----------
 1. Create the virtual environment and install dependencies (scripted):
