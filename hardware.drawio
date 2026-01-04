@@ -1,71 +1,119 @@
 <mxfile host="65bd71144e">
     <diagram id="eWEoSUVJvYE2zm14-aGG" name="Page-1">
-        <mxGraphModel dx="749" dy="715" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="832" dy="460" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
-                <mxCell id="3" value="" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Person.svg;" vertex="1" parent="1">
-                    <mxGeometry x="591.5" y="510" width="37" height="50" as="geometry"/>
+                <mxCell id="18" value="" style="swimlane;startSize=0;swimlaneFillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="520" y="140" width="200" height="400" as="geometry"/>
                 </mxCell>
-                <mxCell id="9" value="" style="edgeStyle=none;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="5" target="4">
+                <mxCell id="11" value="Robot" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" parent="18" vertex="1">
+                    <mxGeometry x="10" width="160" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="Posture and eye movement control" style="rounded=0;whiteSpace=wrap;html=1;" parent="18" vertex="1">
+                    <mxGeometry x="40" y="180" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="Robot servos change webcam perspective" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="18" vertex="1">
+                    <mxGeometry x="30" y="260" width="150" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="Webcam" style="rounded=0;whiteSpace=wrap;html=1;fillColor=default;" parent="18" vertex="1">
+                    <mxGeometry x="40" y="320" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="" style="edgeStyle=none;html=1;dashed=1;dashPattern=12 12;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="18" source="4" target="6" edge="1">
                     <mxGeometry relative="1" as="geometry">
-                        <mxPoint x="500" y="340" as="targetPoint"/>
-                        <Array as="points">
-                            <mxPoint x="360" y="220"/>
-                        </Array>
+                        <mxPoint x="190" y="240" as="sourcePoint"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="7" value="" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="6" target="5">
-                    <mxGeometry relative="1" as="geometry">
-                        <Array as="points">
-                            <mxPoint x="360" y="420"/>
-                        </Array>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="19" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="6" target="3">
+                <mxCell id="39" value="" style="edgeStyle=none;html=1;" edge="1" parent="18" source="31" target="4">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="6" value="Webcam" style="rounded=0;whiteSpace=wrap;html=1;fillColor=default;" vertex="1" parent="1">
-                    <mxGeometry x="550" y="390" width="120" height="60" as="geometry"/>
+                <mxCell id="31" value="Serial Connection" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="18">
+                    <mxGeometry x="40" y="100" width="120" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="18" value="" style="swimlane;startSize=0;" vertex="1" parent="1">
-                    <mxGeometry x="510" y="140" width="290" height="330" as="geometry"/>
+                <mxCell id="21" value="" style="swimlane;startSize=0;fillStyle=solid;swimlaneFillColor=default;fillColor=default;" parent="1" vertex="1">
+                    <mxGeometry x="120" y="140" width="340" height="400" as="geometry"/>
                 </mxCell>
-                <mxCell id="11" value="Robot" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" vertex="1" parent="18">
-                    <mxGeometry x="10" width="280" height="30" as="geometry"/>
+                <mxCell id="22" value="Host Computer" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" parent="21" vertex="1">
+                    <mxGeometry width="300" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="12" value="6*Servos" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="18">
-                    <mxGeometry x="40" y="150" width="120" height="60" as="geometry"/>
+                <mxCell id="24" value="Camera stream" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="21" vertex="1">
+                    <mxGeometry x="160" y="350" width="160" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="4" value="Raspberry Pi Pico (running micro python)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="18">
-                    <mxGeometry x="40" y="50" width="120" height="60" as="geometry"/>
-                </mxCell>
-                <mxCell id="13" value="" style="edgeStyle=none;html=1;" edge="1" parent="18" source="4" target="12">
+                <mxCell id="32" value="" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="21" source="5" target="27">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="15" value="Robot servos change webcam perspective" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="18">
-                    <mxGeometry x="100" y="210" width="150" height="40" as="geometry"/>
+                <mxCell id="5" value="Face Detection model" style="rounded=0;whiteSpace=wrap;html=1;" parent="21" vertex="1">
+                    <mxGeometry x="180" y="260" width="120" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="20" value="Person tracking" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
-                    <mxGeometry x="630" y="490" width="60" height="30" as="geometry"/>
-                </mxCell>
-                <mxCell id="21" value="" style="swimlane;startSize=0;" vertex="1" parent="1">
-                    <mxGeometry x="270" y="140" width="210" height="330" as="geometry"/>
-                </mxCell>
-                <mxCell id="22" value="Host Computer" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1" vertex="1" parent="21">
-                    <mxGeometry width="210" height="30" as="geometry"/>
-                </mxCell>
-                <mxCell id="24" value="Camera stream" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="21">
-                    <mxGeometry x="30" y="290" width="160" height="30" as="geometry"/>
-                </mxCell>
-                <mxCell id="5" value="Face Detection model" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="21">
-                    <mxGeometry x="30" y="150" width="120" height="60" as="geometry"/>
-                </mxCell>
-                <mxCell id="16" value="Face detection information (USB to serial)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="21">
+                <mxCell id="16" value="Face detection information (USB to serial)" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="21" vertex="1">
                     <mxGeometry x="25" y="40" width="160" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="26" value="" style="edgeStyle=none;html=1;" edge="1" parent="1" source="12" target="6">
+                <mxCell id="27" value="Command Generation" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="21">
+                    <mxGeometry x="180" y="180" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="29" value="Serial Connection" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="21">
+                    <mxGeometry x="180" y="100" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="33" value="" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="21" source="27" target="29">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="100" y="270" as="sourcePoint"/>
+                        <mxPoint x="100" y="250" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="37" value="Detection results" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="21">
+                    <mxGeometry x="10" y="290" width="160" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="38" value="Robot output" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="21">
+                    <mxGeometry y="100" width="160" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Person.svg;" parent="1" vertex="1">
+                    <mxGeometry x="740" y="465" width="37" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="6" target="5" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="360" y="490"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="19" value="" style="edgeStyle=none;html=1;" parent="1" source="6" target="3" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="Person tracking" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
+                    <mxGeometry x="680" y="500" width="60" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="28" value="Preview Window" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="160" y="320" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="34" value="" style="edgeStyle=none;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;rounded=1;curved=0;" edge="1" parent="1" source="5" target="28">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="370" y="330" as="sourcePoint"/>
+                        <mxPoint x="370" y="310" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="220" y="430"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="35" value="" style="edgeStyle=none;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;" edge="1" parent="1" source="29" target="31">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="370" y="330" as="sourcePoint"/>
+                        <mxPoint x="370" y="310" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="36" value="" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="29" target="28">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="430" y="280" as="sourcePoint"/>
+                        <mxPoint x="550" y="280" as="targetPoint"/>
+                        <Array as="points">
+                            <mxPoint x="220" y="270"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="40" value="" style="edgeStyle=none;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="31" target="29">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="430" y="280" as="sourcePoint"/>
+                        <mxPoint x="570" y="280" as="targetPoint"/>
+                    </mxGeometry>
                 </mxCell>
             </root>
         </mxGraphModel>
