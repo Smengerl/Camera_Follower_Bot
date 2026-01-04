@@ -61,6 +61,10 @@ class DummySerialManager:
     
     def clear_stdout_buffer(self):
         pass
+    
+    def close(self):
+        """No-op close for dummy serial manager."""
+        pass
 
 
 def validate_model_path(path: str):

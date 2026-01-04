@@ -63,12 +63,14 @@ class Hardware:
         return self.enable.value()
 
     def led_flash(self, times=4, interval=0.2):
-        for _ in range(times):
+        for _ in range(times * 2):
             self.led.value(not self.led.value())
             time.sleep(interval)
         # ensure LED off at end
         self.led.value(0)
 
+    def led_trigger(self):
+        self.led.value(not self.led.value())
 
 # Servo configuration class
 class ServoConfig:
@@ -102,7 +104,7 @@ class ServoConfig:
         self.pwm.duty_ns(int(current_us*1000.0))
 
 
-        print(f"Servo on pin {self.pin} set to angle {angle} (limits: {lo}-{hi}) = {current_us}us pulse")
+        #print(f"Servo on pin {self.pin} set to angle {angle} (limits: {lo}-{hi}) = {current_us}us pulse")
 
         self.target = angle
 
@@ -160,6 +162,7 @@ class ServoController:
 
     def calibrate(self):
         """Calibrate all servos to default position (e.g. in hold mode)."""
+        print("Calibrate all servos")
         self.servo_eyes_hor.calibrate()
         self.servo_eyes_ver.calibrate()
         self.servo_left_lid.calibrate()
@@ -169,6 +172,7 @@ class ServoController:
 
     def relax(self):
         """Relax all servos to their default position."""
+        print("Relax all servos")
         self.servo_eyes_hor.relax()
         self.servo_eyes_ver.relax()
         self.servo_left_lid.relax()
@@ -195,8 +199,8 @@ class ServoController:
         tl_target = int(self.servo_left_lid.max - ((self.servo_left_lid.max - self.servo_left_lid.min) * (0.5 * ( eyes_up_down_position_relative))) - LID_SYNC_OFFSET)
         tr_target = int(self.servo_right_lid.min + ((self.servo_right_lid.max - self.servo_right_lid.min) * (0.5 * (1 - eyes_up_down_position_relative))) + LID_SYNC_OFFSET)
 
-        print(f"Lid sync targets: Left: {tl_target} ({self.servo_left_lid.min}-{self.servo_left_lid.max}), Right: {tr_target} ({self.servo_right_lid.min}-{self.servo_right_lid.max})"
-              f", Relative: {eyes_up_down_position_relative}")
+        #print(f"Lid sync targets: Left: {tl_target} ({self.servo_left_lid.min}-{self.servo_left_lid.max}), Right: {tr_target} ({self.servo_right_lid.min}-{self.servo_right_lid.max})"
+        #      f", Relative: {eyes_up_down_position_relative}")
         self.servo_left_lid.write(tl_target)
         self.servo_right_lid.write(tr_target)
 
@@ -312,22 +316,24 @@ def main():
             elif mode == Mode.AUTO:
                 # auto mode
                 if hw.is_enabled():
-                    data = reader.read_latest()
-                    if data:
-                        x_err, y_err = data
-                        if x_err is not None and y_err is not None:
+                    read_line = reader.read_latest()
+                    if read_line is not None:
+                        (x_err, y_err, relax_cmd) = read_line
+
+                        if relax_cmd is not None and relax_cmd:
+                            print("ACK_RELAX")
+                            break
+                        elif x_err is not None and y_err is not None:
                             # move eyes/eyelids
                             controller.move_eyes(x_err, y_err)
                             print(f"Received position error: {x_err},{y_err}")
-                        else:
-                            print(f"Could not decode position error from received line: {data}")
 
                     # random blink
                     if (blink_trigger_time == 0) or (monotonic_ms() > blink_trigger_time):
                         blink_trigger_time = monotonic_ms() + MIN_BLINK_WAIT_MS + random.randint(0, MAX_BLINK_WAIT_MS - MIN_BLINK_WAIT_MS)
                         print("Blink eyes")
                         controller.blink_eyes()
-                        time.sleep(0.2)
+                        time.sleep(0.4)
 
                     # keep lids synced to UD position
                     controller.lid_sync()
@@ -348,15 +354,16 @@ def main():
 
                     controller.neck_smooth_move()
                     # small sleep — tune as required
-                    time.sleep(0.001)
+                    hw.led_trigger()
+                    time.sleep(0.005)
+                    hw.led_trigger()
                 else:
                     print("Disabled")
                     time.sleep(0.5)
-    except KeyboardInterrupt:
-        print("\nBeende MainLoop: Servos werden entlastet...")
+    finally:
+        print("Main loop ended, relaxing servos")
         controller.relax()  # oder hier eine relax()-Methode, falls gewünscht
         time.sleep(0.5)
-        print("Servos in Mittelstellung. Programm beendet.")
 
 
 if __name__ == "__main__":
