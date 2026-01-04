@@ -101,8 +101,9 @@ Development
 
 Contributing
 ------------
-- Open an issue or a PR. Keep changes small and include tests where appropriate.
-- If adding dependencies, please update `requirements.txt` and add a short note in the PR describing the reason.
+
+Contributions are welcome.  
+See `CONTRIBUTING.md` for details and follow the `CODE_OF_CONDUCT.md` when contributing.
 
 License
 -------
