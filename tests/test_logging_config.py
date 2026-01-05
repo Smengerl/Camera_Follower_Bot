@@ -84,7 +84,7 @@ def test_setup_logging_adds_stdout_handler():
 
 def test_setup_logging_with_file(monkeypatch):
     """Test that setup_logging adds a file handler when log_file is provided."""
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.log') as f:
         log_file = f.name
     
     try:
@@ -101,7 +101,7 @@ def test_setup_logging_with_file(monkeypatch):
 
 def test_setup_logging_with_log_file_env(monkeypatch):
     """Test that setup_logging uses LOG_FILE environment variable."""
-    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.log') as f:
         log_file = f.name
     
     try:
@@ -158,13 +158,21 @@ def test_get_logger():
 
 def test_setup_logging_custom_format():
     """Test that setup_logging respects custom format string."""
+    import io
     custom_format = "%(levelname)s - %(message)s"
     logger = logging_config.setup_logging("test_logger_fmt", format_string=custom_format)
     
-    # Check that the formatter uses the custom format
+    # Capture log output to verify format
     for handler in logger.handlers:
         if isinstance(handler, logging.StreamHandler):
-            assert handler.formatter._fmt == custom_format
+            # Replace stream with a StringIO to capture output
+            string_stream = io.StringIO()
+            handler.stream = string_stream
+            logger.info("Test message")
+            output = string_stream.getvalue()
+            # Verify the output matches the custom format (no timestamp, just level and message)
+            assert "INFO - Test message" in output
+            assert output.count(" - ") == 1  # Only one dash separator (levelname - message)
             break
     
     # Clean up
@@ -173,13 +181,24 @@ def test_setup_logging_custom_format():
 
 def test_setup_logging_custom_date_format():
     """Test that setup_logging respects custom date format string."""
+    import io
+    import re
     custom_date_format = "%H:%M:%S"
     logger = logging_config.setup_logging("test_logger_datefmt", date_format=custom_date_format)
     
-    # Check that the formatter uses the custom date format
+    # Capture log output to verify date format
     for handler in logger.handlers:
         if isinstance(handler, logging.StreamHandler):
-            assert handler.formatter.datefmt == custom_date_format
+            # Replace stream with a StringIO to capture output
+            string_stream = io.StringIO()
+            handler.stream = string_stream
+            logger.info("Test message")
+            output = string_stream.getvalue()
+            # Verify the output contains time in HH:MM:SS format (no date)
+            # Pattern: HH:MM:SS at the start of the line
+            assert re.search(r'^\d{2}:\d{2}:\d{2}', output), f"Expected time format HH:MM:SS in output: {output}"
+            # Ensure it doesn't contain full date (YYYY-MM-DD)
+            assert not re.search(r'\d{4}-\d{2}-\d{2}', output), f"Should not contain full date in output: {output}"
             break
     
     # Clean up

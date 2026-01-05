@@ -90,7 +90,7 @@ def setup_logging(
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)
         except Exception as e:
-            logger.warning(f"Failed to setup file logging to {log_file}: {e}")
+            logger.warning("Failed to setup file logging to %s: %s", log_file, e)
     
     return logger
 
