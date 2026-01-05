@@ -1,6 +1,9 @@
 import serial
 import time
 from collections import deque
+from camera_follower_bot.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # ---------------------------
 # Configuration / constants
@@ -87,7 +90,7 @@ class SerialManager:
         try:
             self.ser.write(data)
             if self.forward_serial_stdio:
-                print(f"Write: {data.decode().strip()}")
+                logger.debug(f"Write: {data.decode().strip()}")
             return True
         except Exception as exc:
             # mark disconnected and schedule reconnect
@@ -152,7 +155,7 @@ class SerialManager:
 
                         # Forward to stdout if enabled
                         if self.forward_serial_stdio:
-                            print(f"Read: {line}")
+                            logger.debug(f"Read: {line}")
 
                 return True
             return False
@@ -217,14 +220,14 @@ class SerialManager:
                 stdout_lines = self.get_stdout_buffer()
                 for line in stdout_lines[initial_buffer_len:]:
                     if line.strip() == 'ACK_RELAX':
-                        print(f"Servo relaxation confirmed: {line}")
+                        logger.info(f"Servo relaxation confirmed: {line}")
                         return True
             
             # Small sleep to avoid busy-waiting
             time.sleep(0.01)
         
         # Timeout reached without acknowledgment
-        print("Warning: Servo relaxation acknowledgment not received within timeout")
+        logger.warning("Servo relaxation acknowledgment not received within timeout")
         return False
     
     def close(self):

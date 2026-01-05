@@ -25,6 +25,7 @@ Features/improvements
 - Simple CLI for running and configuring the processor
 - Reconnect/backoff logic for serial communication with Raspberry Pi running the robot
 - Displaying of robot logs on computer preview window
+- Advanced logging system with configurable log levels and output destinations
 - Unit tests and pytest configuration
 - Migrated to new MediaPipe APIs
 - Helper scripts to setup venv, run tests, and run the processor
@@ -82,6 +83,34 @@ Running the `scripts/run_camera.sh` script you can pass the following parameters
 - `--rotate180` / `--no-rotate180` Rotate camera image by 180 degrees (default: enabled)
 - `--flip` / `--no-flip` Flip camera image horizontally (default: enabled)
 - `--forward-serial-stdio` Tunnel all data read or written via serial to stdout (default: disabled)
+
+Logging
+-------
+
+The application uses Python's built-in `logging` library for all log output. You can control the logging behavior using environment variables:
+
+- `LOG_LEVEL` - Set the log level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is INFO.
+- `LOG_FILE` - Optional path to a log file. If not set, logs only go to stdout.
+
+Examples:
+
+```bash
+# Run with debug logging to see detailed information
+LOG_LEVEL=DEBUG ./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
+
+# Run with logging to a file
+LOG_FILE=camera_bot.log ./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
+
+# Run with both debug level and file output
+LOG_LEVEL=DEBUG LOG_FILE=debug.log ./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
+```
+
+The logging system provides different log levels:
+- **DEBUG**: Detailed information for diagnosing problems (e.g., serial communication details)
+- **INFO**: Confirmation that things are working as expected (default)
+- **WARNING**: Indication that something unexpected happened, but the application is still working
+- **ERROR**: A serious problem that prevented a function from completing
+- **CRITICAL**: A very serious error that may prevent the application from continuing
 
 
 Development

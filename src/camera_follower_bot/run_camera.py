@@ -14,6 +14,9 @@ It patches the `CameraProcessor` module at runtime so the existing
 import argparse
 import sys
 import os
+from camera_follower_bot.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def build_parser():
@@ -50,7 +53,7 @@ class DummySerialManager:
         return False
 
     def send_position(self, error_x, error_y):
-        print(f"[no-serial] {error_x},{error_y}")
+        logger.debug(f"[no-serial] {error_x},{error_y}")
         return True
     
     def read_stdout(self):
@@ -70,16 +73,16 @@ class DummySerialManager:
 def validate_model_path(path: str):
     """Validate that the TFLite model exists and provide helpful instructions if not.
 
-    If the model file is missing, print guidance where to obtain compatible
+    If the model file is missing, log guidance where to obtain compatible
     MediaPipe BlazeFace models and exit the program with a non-zero code.
     """
     if not path:
-        print("Error: MODEL_PATH is empty.")
+        logger.error("MODEL_PATH is empty.")
         print_help_for_models()
         sys.exit(2)
 
     if not os.path.isfile(path):
-        print(f"Error: Face model not found at: {path}")
+        logger.error(f"Face model not found at: {path}")
         print_help_for_models()
         sys.exit(2)
 
@@ -115,6 +118,7 @@ def check_dependencies():
         missing.append('pyserial')
 
     if missing:
+        logger.error('Missing required Python packages: %s', ', '.join(missing))
         print('\nMissing required Python packages:')
         for pkg in missing:
             print(' -', pkg)
@@ -140,30 +144,30 @@ def main(argv=None):
 
     # Override model path and camera id if provided
     if args.model_path is not None:
-        print("Setting MODEL_PATH to", args.model_path)
+        logger.info("Setting MODEL_PATH to %s", args.model_path)
         camera_processor.MODEL_PATH = args.model_path
     if args.camera_id is not None:
-        print("Setting CAMERA_ID to", args.camera_id)
+        logger.info("Setting CAMERA_ID to %s", args.camera_id)
         camera_processor.CAMERA_ID = args.camera_id
     # Set static attributes for process_frame
     if args.rotate180 is not None:
-        print("Setting ROTATE_CAMERA to", args.rotate180)
+        logger.info("Setting ROTATE_CAMERA to %s", args.rotate180)
         camera_processor.ROTATE_CAMERA = args.rotate180
     if args.flip is not None:
-        print("Setting FLIP_CAMERA to", args.flip)
+        logger.info("Setting FLIP_CAMERA to %s", args.flip)
         camera_processor.FLIP_CAMERA = args.flip
 
     # Patch SerialManager used within CameraProcessor
     if args.no_serial:
-        print("Running without serial hardware (no-serial mode)")
+        logger.info("Running without serial hardware (no-serial mode)")
         camera_processor.SerialManager = DummySerialManager
     else:
         if args.forward_serial_stdio is not None:
-            print("Setting FORWARD_SERIAL_STDIO to", args.forward_serial_stdio)
+            logger.info("Setting FORWARD_SERIAL_STDIO to %s", args.forward_serial_stdio)
         if args.baud is not None:
-            print("Setting SERIAL_BAUD to", args.baud)
+            logger.info("Setting SERIAL_BAUD to %s", args.baud)
         if args.serial_port is not None:
-            print("Setting SERIAL_PORT to", args.serial_port)
+            logger.info("Setting SERIAL_PORT to %s", args.serial_port)
             
         # Create a factory that returns a SerialManager configured with the CLI args
         def _factory():
