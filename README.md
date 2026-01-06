@@ -32,12 +32,14 @@ Features/improvements
 
 Prerequisites
 -------------
-- Python 3.8 or newer
+- Python 3.8 or newer on host computer
+- Micro Python on microcontroller
 
 Hardware Requirements
 ---------------------
-- A Raspberry Pi Pico or similar microcontroller running MicroPython, connected via serial port to receive commands
-- Webcam connected to host computer
+- Camera follower robot mechanics (Will Cogley's design or similiar)
+- Raspberry Pi Pico or similar microcontroller running MicroPython to control the robot, connected via serial port to receive commands
+- Webcam connected to host computer mounted on robot and controlled by its eye movement
 
 <img src="./hardware.png">
 
