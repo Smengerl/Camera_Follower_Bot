@@ -1,6 +1,11 @@
 import serial
 import time
 from collections import deque
+import logging
+from rpi_pico_code.remote_logger import CustomFormatter
+
+## Logger will be passed from main script, not set up here.
+logger = None
 
 # ---------------------------
 # Configuration / constants
@@ -28,12 +33,13 @@ class SerialManager:
     def __init__(self, port: str = SERIAL_PORT, baud: int = SERIAL_BAUD, timeout: float = 1.0,
                  min_backoff: float = 0.5, max_backoff: float = 30.0,
                  stdout_buffer_size: int = DEFAULT_STDOUT_BUFFER_SIZE,
-                 forward_serial_stdio: bool = False):
+                 logger_instance=None):
+        global logger
+        logger = logger_instance
         self.port = port
         self.baud = baud
         self.timeout = timeout
         self.ser = None
-
         # backoff parameters
         self.min_backoff = min_backoff
         self.max_backoff = max_backoff
@@ -46,8 +52,6 @@ class SerialManager:
         self.stdout_buffer = deque(maxlen=stdout_buffer_size)
         self._partial_line = ""
 
-        # Tunnel serial to stdio
-        self.forward_serial_stdio = forward_serial_stdio
 
     def connect(self):
         """Try to open the serial port once. Returns True if successful."""
@@ -86,8 +90,8 @@ class SerialManager:
             return False
         try:
             self.ser.write(data)
-            if self.forward_serial_stdio:
-                print(f"Write: {data.decode().strip()}")
+            if logger:
+                logger.debug(f"Serial write: {data.decode().strip()}")
             return True
         except Exception as exc:
             # mark disconnected and schedule reconnect
@@ -121,7 +125,7 @@ class SerialManager:
     
     def read_stdout(self):
         """Read available stdout from the serial device and buffer it.
-        Also, if tunnel_stdio is enabled, forward received data to stdin.
+        Treat lines with known remote_logger prefixes as log output and forward to logger.
         Returns True if data was read successfully, False otherwise.
         """
         if not self.is_connected():
@@ -146,13 +150,33 @@ class SerialManager:
 
                 # Add complete lines to buffer
                 for line in lines[:-1]:
-                    # Skip empty and whitespace-only lines
-                    if line.strip():
-                        self.stdout_buffer.append(line.rstrip('\r'))
+                    line_stripped = line.rstrip('\r')
+                    if line_stripped.strip():
+                        self.stdout_buffer.append(line_stripped)
 
-                        # Forward to stdout if enabled
-                        if self.forward_serial_stdio:
-                            print(f"Read: {line}")
+                        # Check for remote_logger prefix and forward to own logger
+                        for prefix in CustomFormatter.LEVEL_PREFIX.values():
+                            if line_stripped.startswith(prefix):
+                                if logger:
+                                    # Remove prefix and whitespace
+                                    msg = line_stripped[len(prefix):].strip()
+                                    if prefix == CustomFormatter.LEVEL_PREFIX.get(logging.DEBUG):
+                                        logger.debug(f"Remote log: {msg}")
+                                    elif prefix == CustomFormatter.LEVEL_PREFIX.get(logging.INFO):
+                                        logger.info(f"Remote log: {msg}")
+                                    elif prefix == CustomFormatter.LEVEL_PREFIX.get(logging.WARNING):
+                                        logger.warning(f"Remote log: {msg}")
+                                    elif prefix == CustomFormatter.LEVEL_PREFIX.get(logging.ERROR):
+                                        logger.error(f"Remote log: {msg}")
+                                    elif prefix == CustomFormatter.LEVEL_PREFIX.get(logging.CRITICAL):
+                                        logger.critical(f"Remote log: {msg}")
+                                    else: # default case
+                                        logger.info(f"Remote log: {msg}")
+                                break
+                        else:
+                            # No known prefix, fallback to info
+                            if logger:
+                                logger.info(f"Serial read: {line_stripped}")
 
                 return True
             return False
@@ -217,14 +241,16 @@ class SerialManager:
                 stdout_lines = self.get_stdout_buffer()
                 for line in stdout_lines[initial_buffer_len:]:
                     if line.strip() == 'ACK_RELAX':
-                        print(f"Servo relaxation confirmed: {line}")
+                        if logger:
+                            logger.info(f"Servo relaxation confirmed: {line}")
                         return True
             
             # Small sleep to avoid busy-waiting
             time.sleep(0.01)
         
         # Timeout reached without acknowledgment
-        print("Warning: Servo relaxation acknowledgment not received within timeout")
+        if logger:
+            logger.warning("Servo relaxation acknowledgment not received within timeout")
         return False
     
     def close(self):

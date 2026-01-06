@@ -25,6 +25,7 @@ Features/improvements
 - Simple CLI for running and configuring the processor
 - Reconnect/backoff logic for serial communication with Raspberry Pi running the robot
 - Displaying of robot logs on computer preview window
+- Advanced logging system with configurable log levels and output destinations
 - Unit tests and pytest configuration
 - Migrated to new MediaPipe APIs
 - Helper scripts to setup venv, run tests, and run the processor
@@ -83,7 +84,22 @@ Running the `scripts/run_camera.sh` script you can pass the following parameters
 - `--no-serial` Run without serial hardware, e.g. useful for testing (default: disabled)
 - `--rotate180` / `--no-rotate180` Rotate camera image by 180 degrees (default: enabled)
 - `--flip` / `--no-flip` Flip camera image horizontally (default: enabled)
-- `--forward-serial-stdio` Tunnel all data read or written via serial to stdout (default: disabled)
+- `--log-level` Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL; default: INFO)
+- `--log-file` Path to log file (default: stdout only)
+
+Logging
+-------
+
+The application uses Python's built-in `logging` library for all log output. You can control the logging behavior using command-line arguments.
+
+Any log from the robot is forwarded to the logger on the host machine.
+
+The logging system provides different log levels:
+- **DEBUG**: Detailed information for diagnosing problems (e.g., serial communication details)
+- **INFO**: Confirmation that things are working as expected (default)
+- **WARNING**: Indication that something unexpected happened, but the application is still working
+- **ERROR**: A serious problem that prevented a function from completing
+- **CRITICAL**: A very serious error that may prevent the application from continuing
 
 
 Development
