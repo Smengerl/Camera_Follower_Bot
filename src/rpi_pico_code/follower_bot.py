@@ -6,8 +6,7 @@ logger = get_remote_logger(__name__)
 
     
 from input_reader import InputReader
-from machine import Pin, ADC, PWM
-#from servo import Servo
+from machine import Pin, PWM
 
 # --- Configuration ---
 DEADZONE_EYE = 25 # Beyond this threshold of target movement from center position, eye servos will move
@@ -17,8 +16,15 @@ NECK_EYES_HOR_TRANSLATION = 1.25
 NECK_EYES_VER_TRANSLATION = 0.6
 KP = 0.03
 
+CYCLE_TIME_S = 0.1  # Main loop min cycle time (s)
+
 MIN_BLINK_WAIT_MS = 1000 # Minimum wait time between two blinks (ms)
 MAX_BLINK_WAIT_MS = 5000 # Maximum wait time between two blinks (ms)
+BLINK_TIME_S = 0.2  # Time eyelids stay closed during blink (s)
+
+DISABLE_SLEEP_S = 0.5  # Sleep time when disabled
+SWEEP_DELAY_S = 1.0  # Delay between servo sweeps (s)
+
 
 LID_SYNC_OFFSET = -30  # Offset to keep eyelids slightly more closed than eye vertical position
 NECK_SPEED_DEG_PER_S=60 # Speed of neck movement in degrees per second
@@ -27,6 +33,8 @@ SERVO_FREQUENCY_HZ = 50  # Standard servo frequency
 SERVO_MIN_US = 544.0
 SERVO_MAX_US = 2400.0
 SERVO_RANGE_DEG = 180.0
+
+
 
 # Compatibility for time.monotonic() in MicroPython
 try:
@@ -54,11 +62,6 @@ class Hardware:
         self.blink_pin = Pin(9, Pin.IN, Pin.PULL_UP)
         self.led = Pin(25, Pin.OUT)
 
-        # analog inputs (currently unused but kept for reference)
-        self.UD = ADC(26)
-        self.trim = ADC(27)
-        self.LR = ADC(28)
-
     def get_mode(self):
         # Return Mode.HOLD if self.mode.value() == False, else Mode.AUTO
         return Mode.HOLD if not self.mode.value() else Mode.AUTO
@@ -68,11 +71,11 @@ class Hardware:
 
     def led_flash(self, times=4, interval=0.2):
         logger.debug(f"LED flash {times} times with interval {interval}s")
-        for _ in range(times * 2):
-            self.led.value(not self.led.value())
+        for _ in range(times):
+            self.led.value(True)
             time.sleep(interval)
-        # ensure LED off at end
-        self.led.value(0)
+            self.led.value(False)
+            time.sleep(interval)
 
     def led_trigger(self):
         self.led.value(not self.led.value())
@@ -88,8 +91,6 @@ class ServoConfig:
         
         self.pwm = PWM(self.pin)
         self.pwm.freq(SERVO_FREQUENCY_HZ)  # Standard servo frequency
-
-        #self.servo = Servo(pin_id=pin)
         
 
     def write(self, angle):
@@ -105,8 +106,9 @@ class ServoConfig:
     
         #self.servo.write(angle)
         
-        current_us=angle / SERVO_RANGE_DEG * (SERVO_MAX_US-SERVO_MIN_US) + SERVO_MIN_US;
-        self.pwm.duty_ns(int(current_us*1000.0))
+
+        current_us = angle / SERVO_RANGE_DEG * (SERVO_MAX_US - SERVO_MIN_US) + SERVO_MIN_US
+        self.pwm.duty_ns(int(current_us * 1000.0))
 
         #logger.debug(f"Servo on pin {self.pin} set to angle {angle} (limits: {lo}-{hi}) = {current_us}us pulse")
 
@@ -259,42 +261,42 @@ class ServoController:
 
         logger.info("Neck Horizontal Sweep Test")
         self.servo_neck_hor.write(self.servo_neck_hor.min)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_neck_hor.write(self.servo_neck_hor.max)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_neck_hor.calibrate()
 
         logger.info("Neck Vertical Sweep Test")
         self.servo_neck_ver.write(self.servo_neck_ver.min)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_neck_ver.write(self.servo_neck_ver.max)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_neck_ver.calibrate()
 
         logger.info("Left Lid Sweep Test")
         self.servo_left_lid.write(self.servo_left_lid.min)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_left_lid.write(self.servo_left_lid.max)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_left_lid.calibrate()
 
         logger.info("Right Lid Sweep Test")
         self.servo_right_lid.write(self.servo_right_lid.min)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_right_lid.write(self.servo_right_lid.max)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_right_lid.calibrate()
 
         logger.info("Eyes Sweep Test")
         self.servo_eyes_ver.write(self.servo_eyes_ver.min)
         self.servo_eyes_hor.write(self.servo_eyes_hor.min)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_eyes_ver.write(self.servo_eyes_ver.max)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_eyes_hor.write(self.servo_eyes_hor.max)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_eyes_ver.write(self.servo_eyes_ver.min)
-        time.sleep(1)
+        time.sleep(SWEEP_DELAY_S)
         self.servo_eyes_ver.calibrate()
         self.servo_eyes_hor.calibrate()
 
@@ -318,6 +320,7 @@ def main():
     try:
         # main loop
         while True:
+            cycle_start = monotonic_ms()
             mode = hw.get_mode()
             if mode == Mode.HOLD:
                 controller.sweep()
@@ -340,7 +343,7 @@ def main():
                     if (blink_trigger_time == 0) or (monotonic_ms() > blink_trigger_time):
                         blink_trigger_time = monotonic_ms() + MIN_BLINK_WAIT_MS + random.randint(0, MAX_BLINK_WAIT_MS - MIN_BLINK_WAIT_MS)
                         controller.blink_eyes()
-                        time.sleep(0.4)
+                        time.sleep(BLINK_TIME_S)
 
                     # keep lids synced to UD position
                     controller.lid_sync()
@@ -359,17 +362,20 @@ def main():
                             neck_flag = False
 
                     controller.neck_smooth_move()
-                    # small sleep — tune as required
-                    hw.led_trigger()
-                    time.sleep(0.005)
+
+                    elapsed_ms = monotonic_ms() - cycle_start
+                    wait_s = max(0, CYCLE_TIME_S - (elapsed_ms / 1000.0))
+                    if wait_s > 0:
+                        time.sleep(wait_s)
                     hw.led_trigger()
                 else:
                     logger.info("Disabled")
-                    time.sleep(0.5)
+                    time.sleep(DISABLE_SLEEP_S)
+    except Exception as e:
+        logger.exception(f"Uncaught exception in main loop: {e}")
     finally:
         logger.info("Main loop ended, relaxing servos")
-        controller.relax()  # oder hier eine relax()-Methode, falls gewünscht
-        time.sleep(0.5)
+        controller.relax()  
 
 
 if __name__ == "__main__":
