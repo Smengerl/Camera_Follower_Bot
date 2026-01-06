@@ -82,28 +82,15 @@ Running the `scripts/run_camera.sh` script you can pass the following parameters
 - `--no-serial` Run without serial hardware, e.g. useful for testing (default: disabled)
 - `--rotate180` / `--no-rotate180` Rotate camera image by 180 degrees (default: enabled)
 - `--flip` / `--no-flip` Flip camera image horizontally (default: enabled)
-- `--forward-serial-stdio` Tunnel all data read or written via serial to stdout (default: disabled)
+- `--log-level` Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL; default: INFO)
+- `--log-file` Path to log file (default: stdout only)
 
 Logging
 -------
 
-The application uses Python's built-in `logging` library for all log output. You can control the logging behavior using environment variables:
+The application uses Python's built-in `logging` library for all log output. You can control the logging behavior using command-line arguments.
 
-- `LOG_LEVEL` - Set the log level (DEBUG, INFO, WARNING, ERROR, CRITICAL). Default is INFO.
-- `LOG_FILE` - Optional path to a log file. If not set, logs only go to stdout.
-
-Examples:
-
-```bash
-# Run with debug logging to see detailed information
-LOG_LEVEL=DEBUG ./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
-
-# Run with logging to a file
-LOG_FILE=camera_bot.log ./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
-
-# Run with both debug level and file output
-LOG_LEVEL=DEBUG LOG_FILE=debug.log ./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
-```
+Any log from the robot is forwarded to the logger on the host machine.
 
 The logging system provides different log levels:
 - **DEBUG**: Detailed information for diagnosing problems (e.g., serial communication details)

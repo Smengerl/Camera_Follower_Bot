@@ -14,26 +14,12 @@ from typing import Optional
 
 
 # Default configuration
-DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_LOG_LEVEL = logging.INFO
 DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def get_log_level_from_env() -> int:
-    """Get log level from environment variable LOG_LEVEL.
-    
-    Returns:
-        Log level as an integer (e.g., logging.INFO)
-    """
-    level_name = os.getenv("LOG_LEVEL", DEFAULT_LOG_LEVEL).upper()
-    level_map = {
-        "DEBUG": logging.DEBUG,
-        "INFO": logging.INFO,
-        "WARNING": logging.WARNING,
-        "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL,
-    }
-    return level_map.get(level_name, logging.INFO)
+## Removed: get_log_level_from_env. Log level now set via CLI argument.
 
 
 def setup_logging(
@@ -64,8 +50,7 @@ def setup_logging(
     
     # Determine log level
     if level is None:
-        level = get_log_level_from_env()
-    
+        level = DEFAULT_LOG_LEVEL
     logger.setLevel(level)
     
     # Create formatter
@@ -80,9 +65,6 @@ def setup_logging(
     logger.addHandler(stdout_handler)
     
     # Add file handler if log file specified
-    if log_file is None:
-        log_file = os.getenv("LOG_FILE")
-    
     if log_file:
         try:
             file_handler = logging.FileHandler(log_file)

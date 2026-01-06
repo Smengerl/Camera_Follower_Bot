@@ -14,9 +14,8 @@ It patches the `CameraProcessor` module at runtime so the existing
 import argparse
 import sys
 import os
-from camera_follower_bot.logging_config import get_logger
-
-logger = get_logger(__name__)
+## Logger is now set up after parsing CLI args in main()
+logger = None
 
 
 def build_parser():
@@ -30,7 +29,8 @@ def build_parser():
     p.add_argument('--no-rotate180', dest='rotate180', action='store_false', help='Do not rotate camera image by 180 degrees')
     p.add_argument('--flip', dest='flip', default=None, action='store_true', help='Flip camera image horizontally (default: enabled)')
     p.add_argument('--no-flip', dest='flip', action='store_false', help='Do not flip camera image horizontally')
-    p.add_argument('--forward-serial-stdio', default=None, action='store_true', dest='forward_serial_stdio', help='Tunnel all data read or written via serial to stdout')
+    p.add_argument('--log-level', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Set logging level (default: INFO)')
+    p.add_argument('--log-file', default=None, help='Path to log file (default: stdout only)')
     return p
 
 
@@ -53,7 +53,8 @@ class DummySerialManager:
         return False
 
     def send_position(self, error_x, error_y):
-        logger.debug(f"[no-serial] {error_x},{error_y}")
+        if logger:
+            logger.debug(f"[no-serial] {error_x},{error_y}")
         return True
     
     def read_stdout(self):
@@ -77,12 +78,14 @@ def validate_model_path(path: str):
     MediaPipe BlazeFace models and exit the program with a non-zero code.
     """
     if not path:
-        logger.error("MODEL_PATH is empty.")
+        if logger:
+            logger.error("MODEL_PATH is empty.")
         print_help_for_models()
         sys.exit(2)
 
     if not os.path.isfile(path):
-        logger.error(f"Face model not found at: {path}")
+        if logger:
+            logger.error(f"Face model not found at: {path}")
         print_help_for_models()
         sys.exit(2)
 
@@ -118,7 +121,8 @@ def check_dependencies():
         missing.append('pyserial')
 
     if missing:
-        logger.error('Missing required Python packages: %s', ', '.join(missing))
+        if logger:
+            logger.error('Missing required Python packages: %s', ', '.join(missing))
         print('\nMissing required Python packages:')
         for pkg in missing:
             print(' -', pkg)
@@ -134,6 +138,23 @@ def main(argv=None):
     argv = argv if argv is not None else sys.argv[1:]
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    # Setup logging with CLI args
+    import logging
+    from camera_follower_bot import logging_config
+    log_level_str = args.log_level.upper() if args.log_level else 'INFO'
+    log_file = args.log_file
+    level_map = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+    log_level = level_map.get(log_level_str, logging_config.DEFAULT_LOG_LEVEL)
+    # Reconfigure logger
+    global logger
+    logger = logging_config.setup_logging(__name__, level=log_level, log_file=log_file)
 
     # Quick dependency check before importing heavy modules.
     check_dependencies()
@@ -168,17 +189,15 @@ def main(argv=None):
             logger.info("Setting SERIAL_BAUD to %s", args.baud)
         if args.serial_port is not None:
             logger.info("Setting SERIAL_PORT to %s", args.serial_port)
-            
+        
         # Create a factory that returns a SerialManager configured with the CLI args
         def _factory():
-            return SM.SerialManager(port=args.serial_port, baud=args.baud, forward_serial_stdio=args.forward_serial_stdio)
+            return SM.SerialManager(port=args.serial_port, baud=args.baud, forward_serial_stdio=args.forward_serial_stdio, logger_instance=logger)
 
         camera_processor.SerialManager = _factory
 
-
     # Validate model path before creating the detector
     validate_model_path(camera_processor.MODEL_PATH)
-
 
     # Run the existing main loop
     camera_processor.main()
