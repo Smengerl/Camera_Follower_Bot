@@ -1,6 +1,10 @@
 import time
 import random
 
+from remote_logger import get_remote_logger
+logger = get_remote_logger(__name__)
+
+    
 from input_reader import InputReader
 from machine import Pin, ADC, PWM
 #from servo import Servo
@@ -63,6 +67,7 @@ class Hardware:
         return self.enable.value()
 
     def led_flash(self, times=4, interval=0.2):
+        logger.debug(f"LED flash {times} times with interval {interval}s")
         for _ in range(times * 2):
             self.led.value(not self.led.value())
             time.sleep(interval)
@@ -103,19 +108,19 @@ class ServoConfig:
         current_us=angle / SERVO_RANGE_DEG * (SERVO_MAX_US-SERVO_MIN_US) + SERVO_MIN_US;
         self.pwm.duty_ns(int(current_us*1000.0))
 
-
-        #print(f"Servo on pin {self.pin} set to angle {angle} (limits: {lo}-{hi}) = {current_us}us pulse")
+        #logger.debug(f"Servo on pin {self.pin} set to angle {angle} (limits: {lo}-{hi}) = {current_us}us pulse")
 
         self.target = angle
 
     def calibrate(self):
         """Move servo to default position."""
         self.write(self.default)
+        logger.debug(f"Servo on pin {self.pin} calibrated to default position {self.default}")
 
     def relax(self):
         """Deactivate servo PWM signal."""
         self.pwm.deinit()
-
+        logger.debug(f"Servo on pin {self.pin} relaxed")
 
     def move_to_target(self, error, kp, deadzone):
         """Move a given servo target based on error and proportional control.
@@ -135,6 +140,8 @@ class ServoConfig:
         if step == 0:
             step = 1 if adj > 0 else -1
 
+        logger.debug(f"Moving servo on pin {self.pin} by step {step} for error {error} (adj: {adj})")
+        
         new_target = self.target + step
         self.write(new_target)
         return True
@@ -162,7 +169,7 @@ class ServoController:
 
     def calibrate(self):
         """Calibrate all servos to default position (e.g. in hold mode)."""
-        print("Calibrate all servos")
+        logger.info("Calibrate all servos")
         self.servo_eyes_hor.calibrate()
         self.servo_eyes_ver.calibrate()
         self.servo_left_lid.calibrate()
@@ -172,7 +179,7 @@ class ServoController:
 
     def relax(self):
         """Relax all servos to their default position."""
-        print("Relax all servos")
+        logger.info("Relax all servos")
         self.servo_eyes_hor.relax()
         self.servo_eyes_ver.relax()
         self.servo_left_lid.relax()
@@ -182,11 +189,13 @@ class ServoController:
 
     def move_eyes(self, x_error, y_error):
         """Move eye servos based on x and y error values."""
+        logger.info(f"Move eyes: x-error: {-x_error} / y-error: {y_error}")
         self.servo_eyes_hor.move_to_target(-x_error, KP, DEADZONE_EYE)
         self.servo_eyes_ver.move_to_target(y_error, KP, DEADZONE_EYE)
 
     def blink_eyes(self):
         """Perform a blink by moving eyelid servos to closed position"""
+        logger.info("Blink eyes")
         self.servo_left_lid.write(self.servo_left_lid.min)
         self.servo_right_lid.write(self.servo_right_lid.min)
 
@@ -209,6 +218,7 @@ class ServoController:
 
     def neck_target(self):
         """Map eye movement (LR/UD) to base targets (but do not yet move the base); tweak multipliers as needed."""
+        logger.info("Move neck")
         self.neck_hor_target = int(self.servo_eyes_hor.target * NECK_EYES_HOR_TRANSLATION)
         self.neck_ver_target = int(90 - ((90 - self.servo_eyes_ver.target) * NECK_EYES_VER_TRANSLATION))
 
@@ -242,7 +252,51 @@ class ServoController:
             by += step_size if dy > 0 else -step_size
         self.servo_neck_ver.write(int(round(by)))
 
-    
+
+    def sweep(self):
+        logger.info("Sweep all servos")
+        self.calibrate()
+
+        logger.info("Neck Horizontal Sweep Test")
+        self.servo_neck_hor.write(self.servo_neck_hor.min)
+        time.sleep(1)
+        self.servo_neck_hor.write(self.servo_neck_hor.max)
+        time.sleep(1)
+        self.servo_neck_hor.calibrate()
+
+        logger.info("Neck Vertical Sweep Test")
+        self.servo_neck_ver.write(self.servo_neck_ver.min)
+        time.sleep(1)
+        self.servo_neck_ver.write(self.servo_neck_ver.max)
+        time.sleep(1)
+        self.servo_neck_ver.calibrate()
+
+        logger.info("Left Lid Sweep Test")
+        self.servo_left_lid.write(self.servo_left_lid.min)
+        time.sleep(1)
+        self.servo_left_lid.write(self.servo_left_lid.max)
+        time.sleep(1)
+        self.servo_left_lid.calibrate()
+
+        logger.info("Right Lid Sweep Test")
+        self.servo_right_lid.write(self.servo_right_lid.min)
+        time.sleep(1)
+        self.servo_right_lid.write(self.servo_right_lid.max)
+        time.sleep(1)
+        self.servo_right_lid.calibrate()
+
+        logger.info("Eyes Sweep Test")
+        self.servo_eyes_ver.write(self.servo_eyes_ver.min)
+        self.servo_eyes_hor.write(self.servo_eyes_hor.min)
+        time.sleep(1)
+        self.servo_eyes_ver.write(self.servo_eyes_ver.max)
+        time.sleep(1)
+        self.servo_eyes_hor.write(self.servo_eyes_hor.max)
+        time.sleep(1)
+        self.servo_eyes_ver.write(self.servo_eyes_ver.min)
+        time.sleep(1)
+        self.servo_eyes_ver.calibrate()
+        self.servo_eyes_hor.calibrate()
 
 
 
@@ -260,59 +314,13 @@ def main():
     # quick LED flash on start to indicate boot
     hw.led_flash(times=2, interval=0.12)
 
-
-    print("Starte MainLoop")
+    logger.info("Starting main loop")
     try:
         # main loop
         while True:
             mode = hw.get_mode()
             if mode == Mode.HOLD:
-
-                # calibration mode — center all servos
-                print("Hold mode active")
-                controller.calibrate()
-                #time.sleep(1)
-                
-                print("Neck Horizontal Sweep Test")
-                controller.servo_neck_hor.write(controller.servo_neck_hor.min)
-                time.sleep(1)
-                controller.servo_neck_hor.write(controller.servo_neck_hor.max)
-                time.sleep(1)
-                controller.servo_neck_hor.calibrate()
-
-                print("Neck Vertical Sweep Test")
-                controller.servo_neck_ver.write(controller.servo_neck_ver.min)
-                time.sleep(1)
-                controller.servo_neck_ver.write(controller.servo_neck_ver.max)
-                time.sleep(1)
-                controller.servo_neck_ver.calibrate()
-
-                print("Left Lid Sweep Test")
-                controller.servo_left_lid.write(controller.servo_left_lid.min)
-                time.sleep(1)
-                controller.servo_left_lid.write(controller.servo_left_lid.max)
-                time.sleep(1)
-                controller.servo_left_lid.calibrate()
-
-                print("Right Lid Sweep Test")
-                controller.servo_right_lid.write(controller.servo_right_lid.min)
-                time.sleep(1)
-                controller.servo_right_lid.write(controller.servo_right_lid.max)
-                time.sleep(1)
-                controller.servo_right_lid.calibrate()
-
-                print("Eyes Sweep Test")
-                controller.servo_eyes_ver.write(controller.servo_eyes_ver.min)
-                controller.servo_eyes_hor.write(controller.servo_eyes_hor.min)
-                time.sleep(1)
-                controller.servo_eyes_ver.write(controller.servo_eyes_ver.max)
-                time.sleep(1)
-                controller.servo_eyes_hor.write(controller.servo_eyes_hor.max)
-                time.sleep(1)
-                controller.servo_eyes_ver.write(controller.servo_eyes_ver.min)
-                time.sleep(1)
-                controller.servo_eyes_ver.calibrate()
-                controller.servo_eyes_hor.calibrate()
+                controller.sweep()
             elif mode == Mode.AUTO:
                 # auto mode
                 if hw.is_enabled():
@@ -321,17 +329,16 @@ def main():
                         (x_err, y_err, relax_cmd) = read_line
 
                         if relax_cmd is not None and relax_cmd:
-                            print("ACK_RELAX")
+                            logger.info("ACK_RELAX received, exiting main loop")
                             break
                         elif x_err is not None and y_err is not None:
+                            logger.debug(f"Received position error: {x_err},{y_err}")
                             # move eyes/eyelids
                             controller.move_eyes(x_err, y_err)
-                            print(f"Received position error: {x_err},{y_err}")
 
                     # random blink
                     if (blink_trigger_time == 0) or (monotonic_ms() > blink_trigger_time):
                         blink_trigger_time = monotonic_ms() + MIN_BLINK_WAIT_MS + random.randint(0, MAX_BLINK_WAIT_MS - MIN_BLINK_WAIT_MS)
-                        print("Blink eyes")
                         controller.blink_eyes()
                         time.sleep(0.4)
 
@@ -348,7 +355,6 @@ def main():
                             neck_flag = True
 
                         if neck_flag and (monotonic_ms() - neck_trigger_time) >= NECK_DELAY_MS:
-                            print("Move neck")
                             controller.neck_target()
                             neck_flag = False
 
@@ -358,10 +364,10 @@ def main():
                     time.sleep(0.005)
                     hw.led_trigger()
                 else:
-                    print("Disabled")
+                    logger.info("Disabled")
                     time.sleep(0.5)
     finally:
-        print("Main loop ended, relaxing servos")
+        logger.info("Main loop ended, relaxing servos")
         controller.relax()  # oder hier eine relax()-Methode, falls gewünscht
         time.sleep(0.5)
 

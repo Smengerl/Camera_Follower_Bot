@@ -1,6 +1,9 @@
 import serial
 import time
 from collections import deque
+import logging
+from rpi_pico_code.remote_logger import CustomFormatter
+
 ## Logger will be passed from main script, not set up here.
 logger = None
 
@@ -122,7 +125,7 @@ class SerialManager:
     
     def read_stdout(self):
         """Read available stdout from the serial device and buffer it.
-        Also, if tunnel_stdio is enabled, forward received data to stdin.
+        Treat lines with known remote_logger prefixes as log output and forward to logger.
         Returns True if data was read successfully, False otherwise.
         """
         if not self.is_connected():
@@ -147,13 +150,33 @@ class SerialManager:
 
                 # Add complete lines to buffer
                 for line in lines[:-1]:
-                    # Skip empty and whitespace-only lines
-                    if line.strip():
-                        self.stdout_buffer.append(line.rstrip('\r'))
+                    line_stripped = line.rstrip('\r')
+                    if line_stripped.strip():
+                        self.stdout_buffer.append(line_stripped)
 
-                        # Forward to stdout if enabled
-                        if logger:
-                            logger.debug(f"Serial read: {line}")
+                        # Check for remote_logger prefix and forward to own logger
+                        for prefix in CustomFormatter.LEVEL_PREFIX.values():
+                            if line_stripped.startswith(prefix):
+                                if logger:
+                                    # Remove prefix and whitespace
+                                    msg = line_stripped[len(prefix):].strip()
+                                    if prefix == CustomFormatter.LEVEL_PREFIX.get(logging.DEBUG):
+                                        logger.debug(f"Remote log: {msg}")
+                                    elif prefix == CustomFormatter.LEVEL_PREFIX.get(logging.INFO):
+                                        logger.info(f"Remote log: {msg}")
+                                    elif prefix == CustomFormatter.LEVEL_PREFIX.get(logging.WARNING):
+                                        logger.warning(f"Remote log: {msg}")
+                                    elif prefix == CustomFormatter.LEVEL_PREFIX.get(logging.ERROR):
+                                        logger.error(f"Remote log: {msg}")
+                                    elif prefix == CustomFormatter.LEVEL_PREFIX.get(logging.CRITICAL):
+                                        logger.critical(f"Remote log: {msg}")
+                                    else: # default case
+                                        logger.info(f"Remote log: {msg}")
+                                break
+                        else:
+                            # No known prefix, fallback to info
+                            if logger:
+                                logger.info(f"Serial read: {line_stripped}")
 
                 return True
             return False
