@@ -29,8 +29,8 @@ def build_parser():
     p.add_argument('--no-rotate180', dest='rotate180', action='store_false', help='Do not rotate camera image by 180 degrees')
     p.add_argument('--flip', dest='flip', default=None, action='store_true', help='Flip camera image horizontally (default: enabled)')
     p.add_argument('--no-flip', dest='flip', action='store_false', help='Do not flip camera image horizontally')
-    p.add_argument('--log-level', default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Set logging level (default: INFO)')
-    p.add_argument('--log-file', default=None, help='Path to log file (default: stdout only)')
+    p.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Set logging level')
+    p.add_argument('--log-file', help='Path to log file (default: stdout only)')
     return p
 
 
@@ -142,7 +142,7 @@ def main(argv=None):
     # Setup logging with CLI args
     import logging
     from camera_follower_bot import logging_config
-    log_level_str = args.log_level.upper() if args.log_level else 'INFO'
+    log_level_str = args.log_level.upper() if args.log_level else None
     log_file = args.log_file
     level_map = {
         "DEBUG": logging.DEBUG,
@@ -151,7 +151,10 @@ def main(argv=None):
         "ERROR": logging.ERROR,
         "CRITICAL": logging.CRITICAL,
     }
-    log_level = level_map.get(log_level_str, logging_config.DEFAULT_LOG_LEVEL)
+    if log_level_str is None:
+        log_level = logging_config.DEFAULT_LOG_LEVEL
+    else:
+        log_level = level_map.get(log_level_str, logging_config.DEFAULT_LOG_LEVEL)
     # Reconfigure logger
     global logger
     logger = logging_config.setup_logging(__name__, level=log_level, log_file=log_file)
