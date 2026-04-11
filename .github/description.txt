@@ -1,0 +1,1 @@
+Real-time face and pose tracking with a webcam, controlling a microcontroller to follow detected targets.

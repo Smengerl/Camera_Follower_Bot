@@ -1,0 +1,7 @@
+computer-vision
+face-detection
+mediapipe
+mediapipe-face-detection
+micropython
+opencv
+robotics
