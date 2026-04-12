@@ -4,7 +4,20 @@
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 [![3D Printing](https://img.shields.io/badge/3D_printing-STL-green)](#)
+[![License](https://img.shields.io/badge/license-CC%20BY--SA%204.0-blue)](http://creativecommons.org/licenses/by-sa/4.0/)
 
+## Table of Contents
+- [Project Overview](#project-overview)
+- [Features/Improvements](#featuresimprovements)
+- [Prerequisites](#prerequisites)
+- [Hardware Requirements](#hardware-requirements)
+- [Usage](#usage)
+- [Options](#options)
+- [Logging](#logging)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+- [Authors](#authors)
 
 ## Project Overview
 
@@ -19,8 +32,8 @@ Table of Contents
 - Contributing
 - License
 
-Features/improvements
---------
+## Features/improvements
+
 - Real-time camera processing using MediaPipe / OpenCV
 - Simple CLI for running and configuring the processor
 - Reconnect/backoff logic for serial communication with Raspberry Pi running the robot
@@ -31,21 +44,21 @@ Features/improvements
 - Helper scripts to setup venv, run tests, and run the processor
 
 
-Prerequisites
--------------
+## Prerequisites
+
 - Python 3.8 or newer on host computer
 - Micro Python on microcontroller
 
-Hardware Requirements
----------------------
+## Hardware Requirements
+
 - Camera follower robot mechanics (Will Cogley's design or similiar)
 - Raspberry Pi Pico or similar microcontroller running MicroPython to control the robot, connected via serial port to receive commands
 - Webcam connected to host computer mounted on robot and controlled by its eye movement
 
 <img src="./hardware.png">
 
-Usage
-----------
+## Usage
+
 1. Create the virtual environment and install dependencies (scripted):
 
 ```bash
@@ -72,8 +85,7 @@ Usage
 
 6. Check if the camera preview window opens and the computer connects to the microcontroller (visible when you see the microcontroller's output). If this fails, adapt your settings/parameters (see below)
 
-Options
--------
+## Options
 
 Running the `scripts/run_camera.sh` script you can pass the following parameters:
 
@@ -87,8 +99,7 @@ Running the `scripts/run_camera.sh` script you can pass the following parameters
 - `--log-level` Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL; default: INFO)
 - `--log-file` Path to log file (default: stdout only)
 
-Logging
--------
+## Logging
 
 The application uses Python's built-in `logging` library for all log output. You can control the logging behavior using command-line arguments.
 
@@ -102,8 +113,8 @@ The logging system provides different log levels:
 - **CRITICAL**: A very serious error that may prevent the application from continuing
 
 
-Development
------------
+## Development
+
 - The package lives under `src/camera_follower_bot`. Tests live in `tests/` and `pytest.ini` adds `src` to PYTHONPATH.
 - To run tests using the venv python explicitly:
 
@@ -117,12 +128,16 @@ Development
 .venv/bin/python -m camera_follower_bot.run_camera
 ```
 
-Contributing
-------------
+## Contributing
 
 Contributions are welcome.  
 See `CONTRIBUTING.md` for details and follow the `CODE_OF_CONDUCT.md` when contributing.
 
-License
--------
-This project is distributed under the MIT license. See `LICENSE` for details.
+
+## License
+
+This project is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0) — see `LICENSE.txt` for details or visit http://creativecommons.org/licenses/by-sa/4.0/
+
+## Authors
+
+- Simon Gerlach <https://github.com/Smenger>
