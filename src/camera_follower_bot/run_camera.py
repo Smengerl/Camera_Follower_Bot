@@ -80,12 +80,12 @@ def validate_model_path(path: str):
     """
     if not path:
         _get_logger().error("MODEL_PATH is empty.")
-        log_help_for_models()
+        log_model_setup_guidance()
         sys.exit(2)
 
     if not os.path.isfile(path):
         _get_logger().error("Face model not found at: %s", path)
-        log_help_for_models()
+        log_model_setup_guidance()
         sys.exit(2)
 
 
@@ -93,7 +93,7 @@ def _get_logger():
     return logger or logging_config.setup_logging(__name__)
 
 
-def log_help_for_models():
+def log_model_setup_guidance():
     helper_text = "\n".join([
         "How to obtain a compatible MediaPipe face detection model:",
         " - Use MediaPipe BlazeFace TFLite models (short/long range as needed).",
@@ -103,7 +103,7 @@ def log_help_for_models():
         " - Place the .tflite file locally and pass its path via --model-path or set MODEL_PATH.",
         " - If you use `run_camera.py`, pass --model-path /path/to/blaze_face_short_range.tflite",
     ])
-    _get_logger().error(helper_text)
+    _get_logger().info(helper_text)
 
 
 def check_dependencies():
@@ -127,14 +127,14 @@ def check_dependencies():
 
     if missing:
         guidance = "\n".join([
-            f"Missing required Python packages: {', '.join(missing)}",
             "Install dependencies with:",
             "  pip install -r requirements.txt",
             "Or install missing packages directly, for example:",
             f"  pip install {' '.join(missing)}",
             "If you need a ready set of pinned versions, see requirements.txt in this repo.",
         ])
-        _get_logger().error(guidance)
+        _get_logger().error("Missing required Python packages: %s", ', '.join(missing))
+        _get_logger().info(guidance)
         sys.exit(3)
 
 
