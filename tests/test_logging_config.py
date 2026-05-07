@@ -210,18 +210,19 @@ def test_setup_logging_custom_format_from_env(monkeypatch):
     monkeypatch.setenv("LOG_FORMAT", "%(levelname)s|%(message)s")
     logger = logging_config.setup_logging("test_logger_env_fmt")
 
-    for handler in logger.handlers:
-        if isinstance(handler, logging.StreamHandler):
-            string_stream = io.StringIO()
-            handler.stream = string_stream
-            logger.info("Test message")
-            output = string_stream.getvalue()
-            assert "INFO|Test message" in output
-            break
-    else:
-        pytest.fail("Expected a StreamHandler to be configured")
-
-    logger.handlers.clear()
+    try:
+        for handler in logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                string_stream = io.StringIO()
+                handler.stream = string_stream
+                logger.info("Test message")
+                output = string_stream.getvalue()
+                assert "INFO|Test message" in output
+                break
+        else:
+            pytest.fail("Expected a StreamHandler to be configured")
+    finally:
+        logger.handlers.clear()
 
 
 def test_logging_output_to_file():
