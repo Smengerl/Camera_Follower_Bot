@@ -1,4 +1,5 @@
 """Tests for logging configuration module."""
+import io
 import logging
 import os
 import tempfile
@@ -158,7 +159,6 @@ def test_get_logger():
 
 def test_setup_logging_custom_format():
     """Test that setup_logging respects custom format string."""
-    import io
     custom_format = "%(levelname)s - %(message)s"
     logger = logging_config.setup_logging("test_logger_fmt", format_string=custom_format)
     
@@ -207,8 +207,6 @@ def test_setup_logging_custom_date_format():
 
 def test_setup_logging_custom_format_from_env(monkeypatch):
     """Test that setup_logging uses LOG_FORMAT environment variable."""
-    import io
-
     monkeypatch.setenv("LOG_FORMAT", "%(levelname)s|%(message)s")
     logger = logging_config.setup_logging("test_logger_env_fmt")
 
