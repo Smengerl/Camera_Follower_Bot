@@ -90,7 +90,7 @@ Running the `scripts/run_camera.sh` script you can pass the following parameters
 Logging
 -------
 
-The application uses Python's built-in `logging` library for all log output. You can control the logging behavior using command-line arguments.
+The application uses Python's built-in `logging` library for all log output. You can control the logging behavior using command-line arguments or environment variables.
 
 Any log from the robot is forwarded to the logger on the host machine.
 
@@ -100,6 +100,18 @@ The logging system provides different log levels:
 - **WARNING**: Indication that something unexpected happened, but the application is still working
 - **ERROR**: A serious problem that prevented a function from completing
 - **CRITICAL**: A very serious error that may prevent the application from continuing
+
+Supported environment variables:
+- `LOG_LEVEL` sets the host application log level when `--log-level` is not provided.
+- `LOG_FILE` writes logs to a file in addition to stdout when `--log-file` is not provided.
+- `LOG_FORMAT` overrides the default log message format.
+- `LOG_DATE_FORMAT` overrides the default timestamp format.
+
+Example:
+
+```bash
+LOG_LEVEL=DEBUG LOG_FILE=logs/camera.log ./scripts/run_camera.sh --model-path models/blaze_face_short_range.tflite
+```
 
 
 Development

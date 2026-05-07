@@ -1,4 +1,5 @@
 """Tests for logging configuration module."""
+import io
 import logging
 import os
 import tempfile
@@ -158,7 +159,6 @@ def test_get_logger():
 
 def test_setup_logging_custom_format():
     """Test that setup_logging respects custom format string."""
-    import io
     custom_format = "%(levelname)s - %(message)s"
     logger = logging_config.setup_logging("test_logger_fmt", format_string=custom_format)
     
@@ -203,6 +203,49 @@ def test_setup_logging_custom_date_format():
     
     # Clean up
     logger.handlers.clear()
+
+
+def test_setup_logging_custom_date_format_from_env(monkeypatch):
+    """Test that setup_logging uses LOG_DATE_FORMAT environment variable."""
+    import re
+
+    monkeypatch.setenv("LOG_DATE_FORMAT", "%H:%M:%S")
+    logger = logging_config.setup_logging("test_logger_env_datefmt")
+
+    try:
+        for handler in logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                string_stream = io.StringIO()
+                handler.stream = string_stream
+                logger.info("Test message")
+                output = string_stream.getvalue()
+                assert re.search(r'^\d{2}:\d{2}:\d{2}', output)
+                assert not re.search(r'\d{4}-\d{2}-\d{2}', output)
+                break
+        else:
+            pytest.fail("Expected a StreamHandler to be configured")
+    finally:
+        logger.handlers.clear()
+
+
+def test_setup_logging_custom_format_from_env(monkeypatch):
+    """Test that setup_logging uses LOG_FORMAT environment variable."""
+    monkeypatch.setenv("LOG_FORMAT", "%(levelname)s|%(message)s")
+    logger = logging_config.setup_logging("test_logger_env_fmt")
+
+    try:
+        for handler in logger.handlers:
+            if isinstance(handler, logging.StreamHandler):
+                string_stream = io.StringIO()
+                handler.stream = string_stream
+                logger.info("Test message")
+                output = string_stream.getvalue()
+                assert "INFO|Test message" in output
+                break
+        else:
+            pytest.fail("Expected a StreamHandler to be configured")
+    finally:
+        logger.handlers.clear()
 
 
 def test_logging_output_to_file():

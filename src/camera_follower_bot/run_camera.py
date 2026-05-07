@@ -14,7 +14,8 @@ It patches the `CameraProcessor` module at runtime so the existing
 import argparse
 import sys
 import os
-## Logger is now set up after parsing CLI args in main()
+from camera_follower_bot import logging_config
+
 logger = None
 
 
@@ -78,27 +79,31 @@ def validate_model_path(path: str):
     MediaPipe BlazeFace models and exit the program with a non-zero code.
     """
     if not path:
-        if logger:
-            logger.error("MODEL_PATH is empty.")
-        print_help_for_models()
+        get_runtime_logger().error("MODEL_PATH is empty.")
+        log_model_setup_guidance()
         sys.exit(2)
 
     if not os.path.isfile(path):
-        if logger:
-            logger.error(f"Face model not found at: {path}")
-        print_help_for_models()
+        get_runtime_logger().error("Face model not found at: %s", path)
+        log_model_setup_guidance()
         sys.exit(2)
 
 
-def print_help_for_models():
-    print("\nHow to obtain a compatible MediaPipe face detection model:")
-    print(" - Use MediaPipe BlazeFace TFLite models (short/long range as needed).")
-    print(" - Example sources:")
-    print("     * https://github.com/google/mediapipe (search for blaze_face tflite assets)")
-    print("     * Prebuilt TFLite files sometimes live on model zips or sample repos")
-    print(" - Place the .tflite file locally and pass its path via --model-path or set MODEL_PATH.")
-    print(" - If you use `run_camera.py`, pass --model-path /path/to/blaze_face_short_range.tflite")
-    print("")
+def get_runtime_logger():
+    return logger or logging_config.setup_logging(__name__)
+
+
+def log_model_setup_guidance():
+    helper_text = "\n".join([
+        "How to obtain a compatible MediaPipe face detection model:",
+        " - Use MediaPipe BlazeFace TFLite models (short/long range as needed).",
+        " - Example sources:",
+        "     * https://github.com/google/mediapipe (search for blaze_face tflite assets)",
+        "     * Prebuilt TFLite files sometimes live on model zips or sample repos",
+        " - Place the .tflite file locally and pass its path via --model-path or set MODEL_PATH.",
+        " - If you use `run_camera.py`, pass --model-path /path/to/blaze_face_short_range.tflite",
+    ])
+    get_runtime_logger().info(helper_text)
 
 
 def check_dependencies():
@@ -121,16 +126,15 @@ def check_dependencies():
         missing.append('pyserial')
 
     if missing:
-        if logger:
-            logger.error('Missing required Python packages: %s', ', '.join(missing))
-        print('\nMissing required Python packages:')
-        for pkg in missing:
-            print(' -', pkg)
-        print('\nInstall dependencies with:')
-        print('  pip install -r requirements.txt')
-        print('\nOr install missing packages directly, for example:')
-        print('  pip install ' + ' '.join(missing))
-        print('\nIf you need a ready set of pinned versions, see requirements.txt in this repo.')
+        guidance = "\n".join([
+            "Install dependencies with:",
+            "  pip install -r requirements.txt",
+            "Or install missing packages directly, for example:",
+            f"  pip install {' '.join(missing)}",
+            "If you need a ready set of pinned versions, see requirements.txt in this repo.",
+        ])
+        get_runtime_logger().error("Missing required Python packages: %s", ', '.join(missing))
+        get_runtime_logger().info(guidance)
         sys.exit(3)
 
 
@@ -140,21 +144,12 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     # Setup logging with CLI args
-    import logging
-    from camera_follower_bot import logging_config
     log_level_str = args.log_level.upper() if args.log_level else None
     log_file = args.log_file
-    level_map = {
-        "DEBUG": logging.DEBUG,
-        "INFO": logging.INFO,
-        "WARNING": logging.WARNING,
-        "ERROR": logging.ERROR,
-        "CRITICAL": logging.CRITICAL,
-    }
     if log_level_str is None:
-        log_level = logging_config.DEFAULT_LOG_LEVEL
+        log_level = logging_config.get_log_level_from_env()
     else:
-        log_level = level_map.get(log_level_str, logging_config.DEFAULT_LOG_LEVEL)
+        log_level = logging_config.LOG_LEVELS.get(log_level_str, logging_config.DEFAULT_LOG_LEVEL)
     # Reconfigure logger
     global logger
     logger = logging_config.setup_logging(__name__, level=log_level, log_file=log_file)
