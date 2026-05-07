@@ -79,17 +79,17 @@ def validate_model_path(path: str):
     MediaPipe BlazeFace models and exit the program with a non-zero code.
     """
     if not path:
-        _get_logger().error("MODEL_PATH is empty.")
+        get_runtime_logger().error("MODEL_PATH is empty.")
         log_model_setup_guidance()
         sys.exit(2)
 
     if not os.path.isfile(path):
-        _get_logger().error("Face model not found at: %s", path)
+        get_runtime_logger().error("Face model not found at: %s", path)
         log_model_setup_guidance()
         sys.exit(2)
 
 
-def _get_logger():
+def get_runtime_logger():
     return logger or logging_config.setup_logging(__name__)
 
 
@@ -103,7 +103,7 @@ def log_model_setup_guidance():
         " - Place the .tflite file locally and pass its path via --model-path or set MODEL_PATH.",
         " - If you use `run_camera.py`, pass --model-path /path/to/blaze_face_short_range.tflite",
     ])
-    _get_logger().info(helper_text)
+    get_runtime_logger().info(helper_text)
 
 
 def check_dependencies():
@@ -133,8 +133,8 @@ def check_dependencies():
             f"  pip install {' '.join(missing)}",
             "If you need a ready set of pinned versions, see requirements.txt in this repo.",
         ])
-        _get_logger().error("Missing required Python packages: %s", ', '.join(missing))
-        _get_logger().info(guidance)
+        get_runtime_logger().error("Missing required Python packages: %s", ', '.join(missing))
+        get_runtime_logger().info(guidance)
         sys.exit(3)
 
 
