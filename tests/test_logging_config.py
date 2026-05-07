@@ -218,6 +218,8 @@ def test_setup_logging_custom_format_from_env(monkeypatch):
             output = string_stream.getvalue()
             assert "INFO|Test message" in output
             break
+    else:
+        pytest.fail("Expected a StreamHandler to be configured")
 
     logger.handlers.clear()
 

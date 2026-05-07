@@ -67,11 +67,11 @@ def setup_logging(
     # Determine log level
     if level is None:
         level = get_log_level_from_env()
+    if log_file is None:
+        log_file = os.getenv(LOG_FILE_ENV_VAR)
     logger.setLevel(level)
     
     # Create formatter
-    if log_file is None:
-        log_file = os.getenv(LOG_FILE_ENV_VAR)
     fmt = format_string or os.getenv(LOG_FORMAT_ENV_VAR, DEFAULT_LOG_FORMAT)
     datefmt = date_format or os.getenv(LOG_DATE_FORMAT_ENV_VAR, DEFAULT_DATE_FORMAT)
     formatter = logging.Formatter(fmt, datefmt=datefmt)
