@@ -205,6 +205,25 @@ def test_setup_logging_custom_date_format():
     logger.handlers.clear()
 
 
+def test_setup_logging_custom_format_from_env(monkeypatch):
+    """Test that setup_logging uses LOG_FORMAT environment variable."""
+    import io
+
+    monkeypatch.setenv("LOG_FORMAT", "%(levelname)s|%(message)s")
+    logger = logging_config.setup_logging("test_logger_env_fmt")
+
+    for handler in logger.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            string_stream = io.StringIO()
+            handler.stream = string_stream
+            logger.info("Test message")
+            output = string_stream.getvalue()
+            assert "INFO|Test message" in output
+            break
+
+    logger.handlers.clear()
+
+
 def test_logging_output_to_file():
     """Test that logging actually writes to file."""
     with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.log') as f:
