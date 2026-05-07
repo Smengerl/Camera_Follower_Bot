@@ -64,11 +64,11 @@ def setup_logging(
     if logger.handlers:
         return logger
     
-    # Determine log level
-    if level is None:
-        level = get_log_level_from_env()
     if log_file is None:
         log_file = os.getenv(LOG_FILE_ENV_VAR)
+
+    if level is None:
+        level = get_log_level_from_env()
     logger.setLevel(level)
     
     # Create formatter
