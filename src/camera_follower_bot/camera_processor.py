@@ -45,15 +45,25 @@ def make_face_detector(model_path: str):
 def open_camera(camera_id: int):
     """Open camera and return capture plus frame center coordinates.
 
+    A single warm-up frame is grabbed to size the frame: several OpenCV
+    backends report 0 for CAP_PROP_FRAME_WIDTH/HEIGHT until the first frame
+    has actually been captured, which would put the tracking center at (0, 0).
+    That frame is only used for measurement; the main loop reads fresh frames.
+
     Returns: (cap, frame_width, frame_height, center_x, center_y)
     """
     cap = cv2.VideoCapture(camera_id)
-    # FIXME(code-review): frame size is read before the first cap.read(). Several
-    # OpenCV backends report 0 until a frame has been grabbed, which makes
-    # center_x/center_y == 0 and turns error_x/error_y into "face is in the
-    # corner" forever. Grab one frame first, or recompute the center lazily.
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    ret, frame = cap.read()
+    if ret and frame is not None:
+        frame_height, frame_width = frame.shape[:2]
+    else:
+        # Camera not ready (or not present) - fall back to the reported
+        # properties; the main loop's `cap.isOpened()` / `ret` checks handle
+        # a genuinely dead camera.
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
     center_x = frame_width // 2
     center_y = frame_height // 2
     return cap, frame_width, frame_height, center_x, center_y
