@@ -7,6 +7,12 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe import Image, ImageFormat
+# FIXME(code-review): this imports the package as `src.camera_follower_bot.*`,
+# but everywhere else (tests, run_camera's SerialManager patch target) it is
+# `camera_follower_bot.*`. Python loads serial_manager twice as two distinct
+# module objects, so tests exercise a different SerialManager class (and a
+# different module-global `logger`) than the running camera loop. Import as
+# `from camera_follower_bot.serial_manager import SerialManager`.
 from src.camera_follower_bot.serial_manager import SerialManager
 
 
@@ -52,6 +58,10 @@ def open_camera(camera_id: int):
     Returns: (cap, frame_width, frame_height, center_x, center_y)
     """
     cap = cv2.VideoCapture(camera_id)
+    # FIXME(code-review): frame size is read before the first cap.read(). Several
+    # OpenCV backends report 0 until a frame has been grabbed, which makes
+    # center_x/center_y == 0 and turns error_x/error_y into "face is in the
+    # corner" forever. Grab one frame first, or recompute the center lazily.
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     center_x = frame_width // 2
@@ -89,6 +99,10 @@ def process_frame(frame, detector, center_x, center_y, rotate_camera: bool = ROT
     error_y = None
 
     # Draw detections and compute offsets if any faces found
+    # FIXME(code-review): with multiple faces this loop overwrites error_x/error_y
+    # each iteration, so tracking follows whichever detection is last in the list
+    # (no selection by size/confidence/proximity, no hysteresis) and the servos
+    # oscillate between subjects. Pick one target explicitly and stick to it.
     if results.detections:
         for detection in results.detections:
             bbox = detection.bounding_box

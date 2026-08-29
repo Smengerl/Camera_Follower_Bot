@@ -57,6 +57,11 @@ class SerialManager:
         """Try to open the serial port once. Returns True if successful."""
         try:
             self.ser = serial.Serial(self.port, self.baud, timeout=self.timeout)
+            # FIXME(code-review): this blocks the caller for 2s. connect() is
+            # called from reconnect_if_needed() inside the camera main loop, so
+            # every (re)connect freezes frame capture/display and ESC handling
+            # for 2s -- contradicting this class's "non-blocking" docstring.
+            # Track a "settling until" timestamp and gate writes on it instead.
             # allow the device to reset
             time.sleep(2)
             self.attempt_count = 0

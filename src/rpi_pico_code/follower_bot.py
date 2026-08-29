@@ -162,6 +162,10 @@ class ServoController:
         self.neck_ver_target = 90
 
         # servos
+        # FIXME(code-review): eye servos are never written on the AUTO path until
+        # move_eyes() sees an error > DEADZONE_EYE. With a centered face their PWM
+        # duty stays 0 (no pulse) and the eyeballs hang limp. Call self.calibrate()
+        # (or at least write the eye servos) once at startup.
         self.servo_eyes_hor = ServoConfig(pin=10, min_pos=40, max_pos=140, default=90)
         self.servo_eyes_ver = ServoConfig(pin=11, min_pos=40, max_pos=140, default=90)
         self.servo_left_lid = ServoConfig(pin=12, min_pos=90, max_pos=170, default=90)
@@ -197,6 +201,10 @@ class ServoController:
 
     def blink_eyes(self):
         """Perform a blink by moving eyelid servos to closed position"""
+        # FIXME(code-review): writes both lids to `.min` == 90, which is also the
+        # `default` used by calibrate(). The same angle is used for "neutral" and
+        # "fully closed", so either calibrate() leaves the eyes shut or this blink
+        # is invisible. Define explicit closed positions distinct from default.
         logger.info("Blink eyes")
         self.servo_left_lid.write(self.servo_left_lid.min)
         self.servo_right_lid.write(self.servo_right_lid.min)
@@ -221,6 +229,11 @@ class ServoController:
     def neck_target(self):
         """Map eye movement (LR/UD) to base targets (but do not yet move the base); tweak multipliers as needed."""
         logger.info("Move neck")
+        # FIXME(code-review): horizontal mapping is miscentered. Centered eyes
+        # (target 90) give neck_hor_target = int(90 * 1.25) = 112, not 90, so the
+        # head is driven off-center whenever the subject is straight ahead. Use
+        # the same offset form as the vertical axis below:
+        #   int(90 - ((90 - self.servo_eyes_hor.target) * NECK_EYES_HOR_TRANSLATION))
         self.neck_hor_target = int(self.servo_eyes_hor.target * NECK_EYES_HOR_TRANSLATION)
         self.neck_ver_target = int(90 - ((90 - self.servo_eyes_ver.target) * NECK_EYES_VER_TRANSLATION))
 
@@ -349,6 +362,12 @@ def main():
                     controller.lid_sync()
 
                     # decide if neck should move
+                    # FIXME(code-review): if the deflection drops back below
+                    # DEADZONE_NECK before NECK_DELAY_MS elapses, this block is
+                    # skipped while neck_flag stays True with a stale
+                    # neck_trigger_time. The next deflection then fires
+                    # neck_target() immediately with no debounce. Reset neck_flag
+                    # in an `else` branch when the deflection clears.
                     if (
                         abs(controller.servo_eyes_ver.target - controller.servo_eyes_ver.default) >= DEADZONE_NECK
                         or abs(controller.servo_eyes_hor.target - controller.servo_eyes_hor.default) >= DEADZONE_NECK
