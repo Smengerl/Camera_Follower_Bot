@@ -1,11 +1,7 @@
 import os
-import sys
 import time
 import cv2
-import numpy as np
 import mediapipe as mp
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
 from mediapipe import Image, ImageFormat
 from camera_follower_bot.serial_manager import SerialManager
 
