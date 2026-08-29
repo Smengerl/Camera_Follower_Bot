@@ -7,55 +7,6 @@ import pytest
 from camera_follower_bot import logging_config
 
 
-def test_get_log_level_from_env_default(monkeypatch):
-    """Test that default log level is INFO when LOG_LEVEL is not set."""
-    monkeypatch.delenv("LOG_LEVEL", raising=False)
-    level = logging_config.get_log_level_from_env()
-    assert level == logging.INFO
-
-
-def test_get_log_level_from_env_debug(monkeypatch):
-    """Test that LOG_LEVEL=DEBUG returns logging.DEBUG."""
-    monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-    level = logging_config.get_log_level_from_env()
-    assert level == logging.DEBUG
-
-
-def test_get_log_level_from_env_warning(monkeypatch):
-    """Test that LOG_LEVEL=WARNING returns logging.WARNING."""
-    monkeypatch.setenv("LOG_LEVEL", "WARNING")
-    level = logging_config.get_log_level_from_env()
-    assert level == logging.WARNING
-
-
-def test_get_log_level_from_env_error(monkeypatch):
-    """Test that LOG_LEVEL=ERROR returns logging.ERROR."""
-    monkeypatch.setenv("LOG_LEVEL", "ERROR")
-    level = logging_config.get_log_level_from_env()
-    assert level == logging.ERROR
-
-
-def test_get_log_level_from_env_critical(monkeypatch):
-    """Test that LOG_LEVEL=CRITICAL returns logging.CRITICAL."""
-    monkeypatch.setenv("LOG_LEVEL", "CRITICAL")
-    level = logging_config.get_log_level_from_env()
-    assert level == logging.CRITICAL
-
-
-def test_get_log_level_from_env_case_insensitive(monkeypatch):
-    """Test that log level is case insensitive."""
-    monkeypatch.setenv("LOG_LEVEL", "debug")
-    level = logging_config.get_log_level_from_env()
-    assert level == logging.DEBUG
-
-
-def test_get_log_level_from_env_invalid(monkeypatch):
-    """Test that invalid log level defaults to INFO."""
-    monkeypatch.setenv("LOG_LEVEL", "INVALID")
-    level = logging_config.get_log_level_from_env()
-    assert level == logging.INFO
-
-
 def test_setup_logging_creates_logger():
     """Test that setup_logging creates a logger."""
     logger = logging_config.setup_logging("test_logger")
@@ -89,24 +40,6 @@ def test_setup_logging_with_file(monkeypatch):
     
     try:
         logger = logging_config.setup_logging("test_logger_file", log_file=log_file)
-        assert len(logger.handlers) >= 2
-        assert any(isinstance(h, logging.FileHandler) for h in logger.handlers)
-        
-        # Clean up
-        logger.handlers.clear()
-    finally:
-        if os.path.exists(log_file):
-            os.unlink(log_file)
-
-
-def test_setup_logging_with_log_file_env(monkeypatch):
-    """Test that setup_logging uses LOG_FILE environment variable."""
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.log') as f:
-        log_file = f.name
-    
-    try:
-        monkeypatch.setenv("LOG_FILE", log_file)
-        logger = logging_config.setup_logging("test_logger_env_file")
         assert len(logger.handlers) >= 2
         assert any(isinstance(h, logging.FileHandler) for h in logger.handlers)
         

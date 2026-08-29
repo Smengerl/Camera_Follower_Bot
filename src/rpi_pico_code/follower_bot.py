@@ -332,7 +332,7 @@ def main():
                         (x_err, y_err, relax_cmd) = read_line
 
                         if relax_cmd is not None and relax_cmd:
-                            logger.info("ACK_RELAX received, exiting main loop")
+                            logger.info("RELAX command received, exiting main loop")
                             break
                         elif x_err is not None and y_err is not None:
                             logger.debug(f"Received position error: {x_err},{y_err}")
@@ -375,7 +375,12 @@ def main():
         logger.exception(f"Uncaught exception in main loop: {e}")
     finally:
         logger.info("Main loop ended, relaxing servos")
-        controller.relax()  
+        controller.relax()
+        # Bare sentinel line (no remote_logger prefix) emitted only after the
+        # servos are actually de-energized. This is what the host's
+        # SerialManager.send_relax_command() matches on. Must stay in sync with
+        # the exact string checked there.
+        print("ACK_RELAX")
 
 
 if __name__ == "__main__":

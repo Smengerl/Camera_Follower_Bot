@@ -186,16 +186,21 @@ def main(argv=None):
         logger.info("Running without serial hardware (no-serial mode)")
         camera_processor.SerialManager = DummySerialManager
     else:
-        if args.forward_serial_stdio is not None:
-            logger.info("Setting FORWARD_SERIAL_STDIO to %s", args.forward_serial_stdio)
         if args.baud is not None:
             logger.info("Setting SERIAL_BAUD to %s", args.baud)
         if args.serial_port is not None:
             logger.info("Setting SERIAL_PORT to %s", args.serial_port)
-        
-        # Create a factory that returns a SerialManager configured with the CLI args
+
+        # Create a factory that returns a SerialManager configured with the CLI args.
+        # Only forward options that were actually given so SerialManager's own
+        # defaults apply for the rest.
         def _factory():
-            return SM.SerialManager(port=args.serial_port, baud=args.baud, forward_serial_stdio=args.forward_serial_stdio, logger_instance=logger)
+            kwargs = {"logger_instance": logger}
+            if args.serial_port is not None:
+                kwargs["port"] = args.serial_port
+            if args.baud is not None:
+                kwargs["baud"] = args.baud
+            return SM.SerialManager(**kwargs)
 
         camera_processor.SerialManager = _factory
 

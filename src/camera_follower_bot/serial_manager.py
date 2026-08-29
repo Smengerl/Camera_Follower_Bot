@@ -224,27 +224,27 @@ class SerialManager:
         """
         if not self.is_connected():
             return False
-        
-        # Clear buffer before sending to avoid false positives from old data
-        initial_buffer_len = len(self.stdout_buffer)
-        
+
+        # Drop buffered device output before sending so we only scan lines that
+        # arrive after the command. Slicing by a saved index was unreliable: the
+        # buffer is a bounded deque, so once it is full its length stops growing
+        # and the "new lines" slice is always empty.
+        self.stdout_buffer.clear()
+
         # Send RELAX command
         if not self.write(b'RELAX\n'):
             return False
-        
-        # Wait for acknowledgment
+
+        # Wait for acknowledgment (bare "ACK_RELAX" line from the device)
         start_time = time.time()
         while (time.time() - start_time) < timeout:
-            # Read available data
             if self.read_stdout():
-                # Check only new lines added since we started
-                stdout_lines = self.get_stdout_buffer()
-                for line in stdout_lines[initial_buffer_len:]:
+                for line in self.get_stdout_buffer():
                     if line.strip() == 'ACK_RELAX':
                         if logger:
                             logger.info(f"Servo relaxation confirmed: {line}")
                         return True
-            
+
             # Small sleep to avoid busy-waiting
             time.sleep(0.01)
         
