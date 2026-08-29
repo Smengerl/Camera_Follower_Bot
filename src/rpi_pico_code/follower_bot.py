@@ -201,10 +201,9 @@ class ServoController:
 
     def blink_eyes(self):
         """Perform a blink by moving eyelid servos to closed position"""
-        # FIXME(code-review): writes both lids to `.min` == 90, which is also the
-        # `default` used by calibrate(). The same angle is used for "neutral" and
-        # "fully closed", so either calibrate() leaves the eyes shut or this blink
-        # is invisible. Define explicit closed positions distinct from default.
+        # `.min` (90) is the fully-closed position for both lids. It is also the
+        # lids' `default`, so calibrate()/relax() intentionally park the eyes
+        # shut; lid_sync() opens them again on the next AUTO loop iteration.
         logger.info("Blink eyes")
         self.servo_left_lid.write(self.servo_left_lid.min)
         self.servo_right_lid.write(self.servo_right_lid.min)
