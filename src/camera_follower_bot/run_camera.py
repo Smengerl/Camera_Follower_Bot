@@ -163,8 +163,8 @@ def main(argv=None):
     check_dependencies()
 
     # Import here so CLI parsing works quickly even if heavy deps are missing
-    import src.camera_follower_bot.camera_processor as camera_processor
-    import src.camera_follower_bot.serial_manager as SM
+    import camera_follower_bot.camera_processor as camera_processor
+    import camera_follower_bot.serial_manager as SM
 
     # Override model path and camera id if provided
     if args.model_path is not None:

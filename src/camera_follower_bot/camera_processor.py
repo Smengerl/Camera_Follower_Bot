@@ -7,13 +7,7 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from mediapipe import Image, ImageFormat
-# FIXME(code-review): this imports the package as `src.camera_follower_bot.*`,
-# but everywhere else (tests, run_camera's SerialManager patch target) it is
-# `camera_follower_bot.*`. Python loads serial_manager twice as two distinct
-# module objects, so tests exercise a different SerialManager class (and a
-# different module-global `logger`) than the running camera loop. Import as
-# `from camera_follower_bot.serial_manager import SerialManager`.
-from src.camera_follower_bot.serial_manager import SerialManager
+from camera_follower_bot.serial_manager import SerialManager
 
 
 # ---------------------------
