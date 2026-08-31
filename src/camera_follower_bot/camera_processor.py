@@ -19,6 +19,12 @@ MODEL_PATH = os.path.join(HERE, "../../models/blaze_face_short_range.tflite")
 MAX_STDOUT_DISPLAY_LINE_LENGTH = 80  # Maximum characters to display per stdout line
 MAX_STDOUT_DISPLAY_LINE_NUMBERS = 10  # Maximum lines to display of stdout buffer
 
+# A detected face below this confidence is drawn but never chosen as the
+# tracking target. Note the MediaPipe detector itself already drops anything
+# below its own `min_detection_confidence` (default 0.5), so values under 0.5
+# here have no additional effect.
+MIN_DETECTION_SCORE = 0.5
+
 
 
 
@@ -71,6 +77,39 @@ def open_camera(camera_id: int):
 
 
 
+def _detection_center(detection):
+    """Pixel center (x, y) of a detection's bounding box."""
+    bbox = detection.bounding_box
+    return (
+        int(bbox.origin_x + bbox.width / 2),
+        int(bbox.origin_y + bbox.height / 2),
+    )
+
+
+def select_target(detections, center_x, center_y):
+    """Choose which face to track.
+
+    Among the detections that clear MIN_DETECTION_SCORE, pick the one whose
+    bounding-box center is closest to the frame center - that is the face
+    that needs the smallest gaze change, which keeps the eyes from jumping
+    between people. Returns the chosen detection, or None if no detection is
+    confident enough.
+    """
+    best = None
+    best_dist_sq = None
+    for detection in detections:
+        if not detection.categories:
+            continue
+        if detection.categories[0].score < MIN_DETECTION_SCORE:
+            continue
+        face_x, face_y = _detection_center(detection)
+        dist_sq = (center_x - face_x) ** 2 + (center_y - face_y) ** 2
+        if best_dist_sq is None or dist_sq < best_dist_sq:
+            best = detection
+            best_dist_sq = dist_sq
+    return best
+
+
 def process_frame(frame, detector, center_x, center_y, rotate_camera: bool = ROTATE_CAMERA, flip_camera: bool = FLIP_CAMERA):
     """Process a BGR OpenCV frame, run face detection and return (annotated_frame, error_x, error_y).
 
@@ -98,47 +137,39 @@ def process_frame(frame, detector, center_x, center_y, rotate_camera: bool = ROT
     error_x = None
     error_y = None
 
-    # Draw detections and compute offsets if any faces found
-    # FIXME(code-review): with multiple faces this loop overwrites error_x/error_y
-    # each iteration, so tracking follows whichever detection is last in the list
-    # (no selection by size/confidence/proximity, no hysteresis) and the servos
-    # oscillate between subjects. Pick one target explicitly and stick to it.
     if results.detections:
+        # Pick one face to follow: the confident-enough detection nearest the
+        # current view center (smallest required gaze change).
+        target = select_target(results.detections, center_x, center_y)
+
         for detection in results.detections:
             bbox = detection.bounding_box
+            score = detection.categories[0].score if detection.categories else 0.0
 
-            # Draw bounding box
+            # Target box is green; other / rejected faces are drawn dimmer.
+            color = (0, 255, 0) if detection is target else (0, 170, 170)
             cv2.rectangle(
                 frame,
                 (bbox.origin_x, bbox.origin_y),
                 (bbox.origin_x + bbox.width, bbox.origin_y + bbox.height),
-                (0, 255, 0),
+                color,
                 2,
             )
-
-            # Draw confidence label (first category)
-            score = detection.categories[0].score
-            label = f"{score:.2f}"
             cv2.putText(
                 frame,
-                label,
+                f"{score:.2f}",
                 (bbox.origin_x, max(10, bbox.origin_y - 5)),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
-                (0, 255, 0),
+                color,
                 1,
             )
 
-            # Compute bounding box center
-            face_x = int((bbox.origin_x + bbox.width / 2))
-            face_y = int((bbox.origin_y + bbox.height / 2))
-
+        if target is not None:
+            face_x, face_y = _detection_center(target)
             # Pixel error: positive means target is left/up relative to center
             error_x = center_x - face_x
             error_y = center_y - face_y
-
-            # (optional) draw a red dot at face center
-            # cv2.circle(frame, (face_x, face_y), 5, (0, 0, 255), -1)
 
     return frame, error_x, error_y
 

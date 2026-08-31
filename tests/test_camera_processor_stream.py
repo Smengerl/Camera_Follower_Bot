@@ -65,3 +65,65 @@ def test_process_frame_with_fake_detector():
 
     assert error_x == 0
     assert error_y == 0
+
+
+class _FakeBBox:
+    def __init__(self, origin_x, origin_y, width, height):
+        self.origin_x = origin_x
+        self.origin_y = origin_y
+        self.width = width
+        self.height = height
+
+
+class _FakeCategory:
+    def __init__(self, score):
+        self.score = score
+
+
+class _FakeDetection:
+    def __init__(self, bbox, score):
+        self.bounding_box = bbox
+        self.categories = [_FakeCategory(score)]
+
+
+class _FakeResults:
+    def __init__(self, detections):
+        self.detections = detections
+
+
+def _fake_detector(detections):
+    class FakeDetector:
+        def detect(self, _img):
+            return _FakeResults(detections)
+
+    return FakeDetector()
+
+
+def test_process_frame_multi_face_picks_closest_confident():
+    """Among confident faces, follow the one closest to the frame center;
+    a dead-center face below MIN_DETECTION_SCORE is ignored."""
+    h, w = 480, 640
+    img = np.zeros((h, w, 3), dtype=np.uint8)
+    cx, cy = w // 2, h // 2
+    bw = bh = 40
+
+    far = _FakeDetection(_FakeBBox(10, 10, bw, bh), 0.95)                      # confident, top-left
+    near = _FakeDetection(_FakeBBox(cx - bw // 2 + 20, cy - bh // 2 + 10, bw, bh), 0.90)  # confident, near center
+    center_weak = _FakeDetection(_FakeBBox(cx - bw // 2, cy - bh // 2, bw, bh), 0.20)     # centered but low score
+
+    _, error_x, error_y = cp.process_frame(img, _fake_detector([far, near, center_weak]), cx, cy)
+
+    # target must be `near`, whose center is (cx + 20, cy + 10)
+    assert (error_x, error_y) == (-20, -10)
+
+
+def test_process_frame_all_faces_below_threshold_returns_none():
+    h, w = 480, 640
+    img = np.zeros((h, w, 3), dtype=np.uint8)
+    cx, cy = w // 2, h // 2
+
+    weak = _FakeDetection(_FakeBBox(cx - 20, cy - 20, 40, 40), 0.30)
+    _, error_x, error_y = cp.process_frame(img, _fake_detector([weak]), cx, cy)
+
+    assert error_x is None
+    assert error_y is None
