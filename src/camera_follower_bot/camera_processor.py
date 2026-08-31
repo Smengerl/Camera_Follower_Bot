@@ -179,6 +179,16 @@ def main():
                     color=(0, 0, 255),
                     fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.7)
+            elif not serial_mgr.is_ready():
+                # Port open but the board is still resetting; sends are dropped
+                frames_sent_since_reconnect = 0
+                cv2.putText(
+                    img=annotated,
+                    text="Connecting (device resetting) - Press Esc to exit",
+                    org=(10, 25),
+                    color=(0, 165, 255),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.7)
             else:
                 cv2.putText(
                     img=annotated,
@@ -196,10 +206,11 @@ def main():
                 # Throttle serial sending to ~100Hz
                 now = time.time()
                 if now - last_send >= 0.01:
-                    # send via manager (will silently drop if disconnected)
-                    serial_mgr.send_position(error_x, error_y)
+                    # send via manager (silently drops if disconnected or the
+                    # board is still resetting)
+                    if serial_mgr.send_position(error_x, error_y):
+                        frames_sent_since_reconnect += 1
                     last_send = now
-                    frames_sent_since_reconnect += 1
             else:
                text = f"No face detected"
                  

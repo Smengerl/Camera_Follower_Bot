@@ -16,6 +16,10 @@ DEFAULT_STDOUT_BUFFER_SIZE = 100  # Number of lines to keep in stdout buffer
 
 SERVO_RELAX_TIMEOUT_SECONDS = 2.0  # Timeout for servo relax acknowledgment
 
+# Opening the port toggles DTR, which reboots most MicroPython boards. They
+# ignore serial input for roughly this long afterwards.
+DEVICE_RESET_SECONDS = 2.0
+
 class SerialManager:
     """Manage a serial connection with non-blocking exponential backoff reconnects.
 
@@ -24,7 +28,11 @@ class SerialManager:
     The manager will silently drop sends when disconnected and attempt
     reconnects in the background (timed checks), avoiding blocking the
     main camera loop.
-    
+
+    After a (re)connect the board reboots; `is_ready()` reports when it is
+    safe to send, and outgoing writes are silently dropped until then. Reads
+    keep working during that window.
+
     Stdout tunneling: call `read_stdout()` to read available output from the
     device. The output is buffered internally and can be retrieved via
     `get_stdout_buffer()`.
@@ -33,6 +41,7 @@ class SerialManager:
     def __init__(self, port: str = SERIAL_PORT, baud: int = SERIAL_BAUD, timeout: float = 1.0,
                  min_backoff: float = 0.5, max_backoff: float = 30.0,
                  stdout_buffer_size: int = DEFAULT_STDOUT_BUFFER_SIZE,
+                 device_reset_seconds: float = DEVICE_RESET_SECONDS,
                  logger_instance=None):
         global logger
         logger = logger_instance
@@ -46,6 +55,10 @@ class SerialManager:
         self.attempt_count = 0
         self.next_attempt_time = 0.0
         self.last_error = None
+        # post-open settling: time.time() before which the board is still
+        # resetting and writes would be lost
+        self.device_reset_seconds = device_reset_seconds
+        self._ready_at = 0.0
 
         # stdout buffering
         self.stdout_buffer_size = stdout_buffer_size
@@ -57,13 +70,10 @@ class SerialManager:
         """Try to open the serial port once. Returns True if successful."""
         try:
             self.ser = serial.Serial(self.port, self.baud, timeout=self.timeout)
-            # FIXME(code-review): this blocks the caller for 2s. connect() is
-            # called from reconnect_if_needed() inside the camera main loop, so
-            # every (re)connect freezes frame capture/display and ESC handling
-            # for 2s -- contradicting this class's "non-blocking" docstring.
-            # Track a "settling until" timestamp and gate writes on it instead.
-            # allow the device to reset
-            time.sleep(2)
+            # Don't block the caller (connect() runs in the camera main loop via
+            # reconnect_if_needed()). Record when the board should be done
+            # resetting; write() drops outgoing bytes until then.
+            self._ready_at = time.time() + self.device_reset_seconds
             self.attempt_count = 0
             self.next_attempt_time = 0.0
             self.last_error = None
@@ -85,6 +95,10 @@ class SerialManager:
     def is_connected(self) -> bool:
         return self.ser is not None and getattr(self.ser, 'is_open', True)
 
+    def is_ready(self) -> bool:
+        """True once connected *and* past the post-open device-reset window."""
+        return self.is_connected() and time.time() >= self._ready_at
+
     def write(self, data: bytes):
         """Write bytes to serial port if connected. On failure, close and schedule reconnect."""
         if not data:
@@ -92,6 +106,9 @@ class SerialManager:
         if not self.is_connected():
             return False
         if self.ser is None:
+            return False
+        if time.time() < self._ready_at:
+            # Board still resetting after the port opened; bytes would be lost.
             return False
         try:
             self.ser.write(data)

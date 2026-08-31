@@ -52,6 +52,9 @@ class DummySerialManager:
     def is_connected(self):
         return False
 
+    def is_ready(self):
+        return False
+
     def send_position(self, error_x, error_y):
         if logger:
             logger.debug(f"[no-serial] {error_x},{error_y}")

@@ -52,7 +52,7 @@ def test_write_handles_exception_and_schedules_reconnect(monkeypatch):
             pass
 
     monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': WFail}))
-    mgr = sm.SerialManager(min_backoff=0.01, max_backoff=0.02)
+    mgr = sm.SerialManager(min_backoff=0.01, max_backoff=0.02, device_reset_seconds=0)
     # connect succeeds (constructor returns instance)
     assert mgr.connect() is True
     # attempt to write data -> write() should return False and schedule reconnect
@@ -73,7 +73,7 @@ def test_send_position_formats_and_writes(monkeypatch):
             written['data'] = data
 
     monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': WGood}))
-    mgr = sm.SerialManager()
+    mgr = sm.SerialManager(device_reset_seconds=0)
     assert mgr.connect() is True
     ok = mgr.send_position(10, -5)
     assert ok is True
@@ -340,9 +340,9 @@ def test_send_relax_command_success(monkeypatch):
             self.is_open = False
 
     monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': SerialWithRelaxAck}))
-    mgr = sm.SerialManager()
+    mgr = sm.SerialManager(device_reset_seconds=0)
     assert mgr.connect() is True
-    
+
     # Send RELAX command
     result = mgr.send_relax_command(timeout=0.5)
     assert result is True
@@ -370,9 +370,9 @@ def test_send_relax_command_timeout(monkeypatch):
             self.is_open = False
 
     monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': SerialNoAck}))
-    mgr = sm.SerialManager()
+    mgr = sm.SerialManager(device_reset_seconds=0)
     assert mgr.connect() is True
-    
+
     # Send RELAX command with very short timeout
     result = mgr.send_relax_command(timeout=0.1)
     assert result is False
@@ -419,9 +419,9 @@ def test_close_method_sends_relax(monkeypatch):
             self.is_open = False
 
     monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': SerialWithRelaxAck}))
-    mgr = sm.SerialManager()
+    mgr = sm.SerialManager(device_reset_seconds=0)
     assert mgr.connect() is True
-    
+
     # Close the manager
     mgr.close()
     
@@ -436,7 +436,38 @@ def test_close_method_when_not_connected(monkeypatch):
     monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': DummySerialFail}))
     mgr = sm.SerialManager(min_backoff=0.01, max_backoff=0.02)
     assert mgr.connect() is False
-    
+
     # Close should not raise an error
     mgr.close()
     assert mgr.ser is None
+
+
+def test_write_dropped_during_device_reset_window(monkeypatch):
+    """connect() must not block; writes are dropped until the board has reset."""
+    written = []
+
+    class WGood:
+        def __init__(self, *a, **kw):
+            self.is_open = True
+
+        def write(self, data):
+            written.append(data)
+
+    monkeypatch.setattr(sm, 'serial', type('X', (), {'Serial': WGood}))
+    mgr = sm.SerialManager(device_reset_seconds=0.2)
+
+    before = time.time()
+    assert mgr.connect() is True
+    assert time.time() - before < 0.1  # returned immediately, no sleep
+
+    # Inside the reset window: connected but not ready, write silently dropped
+    assert mgr.is_connected() is True
+    assert mgr.is_ready() is False
+    assert mgr.write(b'1,2\n') is False
+    assert written == []
+
+    # After the window: ready, write goes through
+    time.sleep(0.25)
+    assert mgr.is_ready() is True
+    assert mgr.write(b'3,4\n') is True
+    assert written == [b'3,4\n']
