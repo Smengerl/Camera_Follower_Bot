@@ -17,9 +17,25 @@ from typing import Optional
 DEFAULT_LOG_LEVEL = logging.INFO
 DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+LOG_LEVEL_ENV_VAR = "LOG_LEVEL"
+LOG_FILE_ENV_VAR = "LOG_FILE"
+LOG_FORMAT_ENV_VAR = "LOG_FORMAT"
+LOG_DATE_FORMAT_ENV_VAR = "LOG_DATE_FORMAT"
 
+LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
 
-## Removed: get_log_level_from_env. Log level now set via CLI argument.
+def get_log_level_from_env(default: int = DEFAULT_LOG_LEVEL) -> int:
+    """Return the configured log level from the environment."""
+    level_name = os.getenv(LOG_LEVEL_ENV_VAR, "").strip().upper()
+    if not level_name:
+        return default
+    return LOG_LEVELS.get(level_name, default)
 
 
 def setup_logging(
@@ -48,14 +64,16 @@ def setup_logging(
     if logger.handlers:
         return logger
     
-    # Determine log level
+    if log_file is None:
+        log_file = os.getenv(LOG_FILE_ENV_VAR)
+
     if level is None:
-        level = DEFAULT_LOG_LEVEL
+        level = get_log_level_from_env()
     logger.setLevel(level)
     
     # Create formatter
-    fmt = format_string or DEFAULT_LOG_FORMAT
-    datefmt = date_format or DEFAULT_DATE_FORMAT
+    fmt = format_string or os.getenv(LOG_FORMAT_ENV_VAR, DEFAULT_LOG_FORMAT)
+    datefmt = date_format or os.getenv(LOG_DATE_FORMAT_ENV_VAR, DEFAULT_DATE_FORMAT)
     formatter = logging.Formatter(fmt, datefmt=datefmt)
     
     # Add stdout handler
