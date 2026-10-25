@@ -2,7 +2,6 @@
 # Camera Follower Bot
 
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue)](#)
-[![License](https://img.shields.io/badge/license-MIT-green)](#)
 [![3D Printing](https://img.shields.io/badge/3D_printing-STL-green)](#)
 [![License](https://img.shields.io/badge/license-CC%20BY--SA%204.0-blue)](http://creativecommons.org/licenses/by-sa/4.0/)
 
@@ -24,13 +23,6 @@
 Camera Follower Bot is a lightweight, real-time camera tracking system that detects faces and poses, then drives a microcontroller via serial communication to physically track them. This project is a robust, testable, and scriptable rework of the original "camera follower robot" project by Will Cogley (https://willcogley.notion.site/).
 
 It is designed for hobbyists and developers who want to build a camera-based tracking robot using Python, MediaPipe, OpenCV, and a microcontroller such as the Raspberry Pi Pico running MicroPython.
-
-Table of Contents
-- Features
-- Usage
-- Development
-- Contributing
-- License
 
 ## Features/improvements
 
