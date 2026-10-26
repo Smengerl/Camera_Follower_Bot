@@ -111,6 +111,7 @@ The logging system provides different log levels:
 ## Development
 
 - The package lives under `src/camera_follower_bot`. Tests live in `tests/` and `pytest.ini` adds `src` to PYTHONPATH.
+- The test image `tests/testimage.png` is AI-generated. It shows no real person.
 - To run tests using the venv python explicitly:
 
 ```bash
