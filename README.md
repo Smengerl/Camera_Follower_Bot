@@ -7,7 +7,7 @@
 
 ## Table of Contents
 - [Project Overview](#project-overview)
-- [Features/Improvements](#featuresimprovements)
+- [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Hardware Requirements](#hardware-requirements)
 - [Usage](#usage)
@@ -24,7 +24,11 @@ Camera Follower Bot is a lightweight, real-time camera tracking system that dete
 
 It is designed for hobbyists and developers who want to build a camera-based tracking robot using Python, MediaPipe, OpenCV, and a microcontroller such as the Raspberry Pi Pico running MicroPython.
 
-## Features/improvements
+<p align="center">
+  <img src="./hardware.png" alt="Architecture: webcam on the robot, face detection on the host, commands over serial to the MicroPython robot" width="75%">
+</p>
+
+## Features
 
 - Real-time camera processing using MediaPipe / OpenCV
 - Simple CLI for running and configuring the processor
@@ -47,7 +51,6 @@ It is designed for hobbyists and developers who want to build a camera-based tra
 - Raspberry Pi Pico or similar microcontroller running MicroPython to control the robot, connected via serial port to receive commands
 - Webcam connected to host computer mounted on robot and controlled by its eye movement
 
-<img src="./hardware.png">
 
 ## Usage
 

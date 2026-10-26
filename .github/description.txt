@@ -1,1 +1,1 @@
-Real-time face and pose tracking with a webcam, controlling a microcontroller to follow detected targets.
+A webcam robot that follows your face: real-time face and pose tracking with MediaPipe, driving a Raspberry Pi Pico over serial.
